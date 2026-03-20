@@ -475,26 +475,13 @@ function sendVerificationLinks(entry){
 
   // ── WHATSAPP MESSAGE — "Verify My Account" hyperlink (primary channel) ──
   // WhatsApp renders *text* as bold, hyperlinks as tappable
-  var waMsg='Hello '+(entry.owner||'there')+'! 👋
-
-'
-    +'Your business *'+entry.biz+'* has been registered with *Navadhar Delivery Network* in Jodhpur.
-
-'
-    +'Your Business ID: *'+entry.bizId+'*
-'
-    +'Delivery Zone: *'+entry.zone+' Zone*
-
-'
-    +'Please tap the link below to verify your account:
-
-'
-    +'👉 *Verify My Account* → '+verifyUrl+'
-
-'
-    +'⏰ _This link expires in 24 hours. Do not share it._
-
-'
+  var waMsg='Hello '+(entry.owner||'there')+'! 👋\n\n'
+    +'Your business *'+entry.biz+'* has been registered with *Navadhar Delivery Network* in Jodhpur.\n\n'
+    +'Your Business ID: *'+entry.bizId+'*\n'
+    +'Delivery Zone: *'+entry.zone+' Zone*\n\n'
+    +'Please tap the link below to verify your account:\n\n'
+    +'👉 *Verify My Account* → '+verifyUrl+'\n\n'
+    +'⏰ _This link expires in 24 hours. Do not share it._\n\n'
     +'— Navadhar Team, Jodhpur 🚚';
 
   var waNumber=(entry.whatsapp||entry.phone).replace(/\D/g,'');
@@ -503,21 +490,11 @@ function sendVerificationLinks(entry){
 
   // ── EMAIL via mailto (opens email client) ──
   var emailSubject='Verify My Account — Navadhar Delivery Network';
-  var emailBody='Hello '+(entry.owner||'there')+',
-
-'
-    +'Your business "'+entry.biz+'" (ID: '+entry.bizId+') has been registered with Navadhar Delivery Network.
-
-'
-    +'Click the link below to confirm and verify your account:
-
-'
-    +'Verify My Account → '+verifyUrl+'
-
-'
-    +'This link expires in 24 hours.
-
-'
+  var emailBody='Hello '+(entry.owner||'there')+',\n\n'
+    +'Your business "'+entry.biz+'" (ID: '+entry.bizId+') has been registered with Navadhar Delivery Network.\n\n'
+    +'Click the link below to confirm and verify your account:\n\n'
+    +'Verify My Account → '+verifyUrl+'\n\n'
+    +'This link expires in 24 hours.\n\n'
     +'— Navadhar Team, Jodhpur';
 
   // Store links for the success modal to display
