@@ -1,271 +1,539 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-const CENTER={lat:26.2389,lng:73.0243};
-const ZONE_META={
-  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',vehicles:['VH-N01']},
-  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',vehicles:['VH-E01']},
-  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',vehicles:['VH-S01']},
-  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706',vehicles:['VH-W01']}
-};
-function haversine(la1,lo1,la2,lo2){
-  const R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
-  const a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;
-  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
-}
-function getZone(lat,lng){
-  const dLat=lat-CENTER.lat,dLng=lng-CENTER.lng;
-  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
-}
-function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
-function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
-function zonePickups(zone){return loadPickups().filter(p=>p.zone===zone).sort((a,b)=>a.dist-b.dist);}
-</script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Register Your Business — Navadhar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--white:#fff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;--orange:#FF5C00;--violet:#6C2BD9;--green:#16A34A;--fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif}
+:root{
+  --white:#fff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;
+  --orange:#FF5C00;--green:#16A34A;--rose:#DC2626;--amber:#D97706;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
+}
 html,body{min-height:100vh;background:var(--off);color:var(--ink);font-family:var(--fb)}
-nav{background:var(--white);border-bottom:2px solid var(--ink);padding:0 40px;display:flex;align-items:center;height:60px;gap:12px;position:sticky;top:0;z-index:200}
+
+nav{background:var(--white);border-bottom:2px solid var(--ink);padding:0 32px;display:flex;align-items:center;height:62px;gap:12px;position:sticky;top:0;z-index:500}
 .logo{display:flex;align-items:center;gap:9px;text-decoration:none}
-.lm{width:32px;height:32px;background:var(--orange);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:14px;color:white}
+.lm{width:34px;height:34px;background:var(--orange);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:15px;color:white;flex-shrink:0}
 .lt{font-family:var(--fh);font-weight:800;font-size:16px;color:var(--ink);letter-spacing:.04em}
-.bk{margin-left:auto;font-size:12px;color:var(--ink2);text-decoration:none;font-family:var(--fh);font-weight:600;border:2px solid var(--ink);padding:6px 14px;border-radius:7px;transition:all .15s}
-.bk:hover{background:var(--ink);color:white}
-.page{max-width:1020px;margin:0 auto;padding:36px 28px}
-.ph{margin-bottom:28px}
-.ey{font-size:11px;font-family:var(--fh);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
-.pt{font-family:var(--fh);font-size:32px;font-weight:800;color:var(--ink);margin-bottom:6px}
-.ps{font-size:13px;color:var(--ink3);line-height:1.7;max-width:500px}
-.layout{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start}
-/* FORM CARD */
-.fc{background:var(--white);border:2px solid var(--ink);border-radius:16px;padding:24px;position:sticky;top:72px}
-.ct{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--off);display:flex;align-items:center;gap:8px}
-.ctbar{width:4px;height:18px;background:var(--orange);border-radius:2px}
-label{font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px;font-family:var(--fh);font-weight:700}
+.nav-links{margin-left:auto;display:flex;gap:8px}
+.nbtn{font-size:12px;padding:7px 14px;border-radius:8px;border:2px solid var(--ink);background:white;color:var(--ink);text-decoration:none;font-family:var(--fh);font-weight:700;transition:all .15s;white-space:nowrap}
+.nbtn:hover{background:var(--ink);color:white}
+
+.page{max-width:1060px;margin:0 auto;padding:32px 24px}
+.page-header{margin-bottom:28px}
+.eyebrow{font-size:11px;font-family:var(--fh);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.page-title{font-family:var(--fh);font-size:32px;font-weight:800;color:var(--ink);margin-bottom:6px}
+.page-sub{font-size:13px;color:var(--ink3);line-height:1.7;max-width:500px}
+
+.layout{display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:start}
+
+/* ── FORM PANEL ── */
+.form-panel{background:var(--white);border:2px solid var(--ink);border-radius:16px;padding:24px;position:sticky;top:76px}
+.panel-title{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--off);display:flex;align-items:center;gap:8px}
+.panel-bar{width:4px;height:18px;background:var(--orange);border-radius:2px;flex-shrink:0}
+.field{margin-bottom:12px}
+label{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;font-family:var(--fh);font-weight:700}
 input,select{width:100%;background:var(--off);border:2px solid #E2E4E9;border-radius:8px;padding:10px 12px;font-size:13px;color:var(--ink);font-family:var(--fb);outline:none;transition:border .15s}
 input:focus,select:focus{border-color:var(--orange);background:white}
 input::placeholder{color:var(--ink3)}
-select option{background:white}
-.field{margin-bottom:12px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ── LOCATION SECTION ── */
+.loc-section{background:var(--off);border:2px solid #E2E4E9;border-radius:12px;padding:14px;margin-bottom:14px}
+.loc-title{font-size:10px;font-family:var(--fh);font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.loc-methods{display:flex;flex-direction:column;gap:7px}
+
+/* GPS BUTTON */
+.btn-gps{width:100%;padding:11px 14px;border-radius:8px;border:2px solid var(--ink);background:var(--ink);color:white;cursor:pointer;font-family:var(--fh);font-weight:800;font-size:12px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:.02em}
+.btn-gps:hover{background:#1a1a2e}
+.btn-gps:disabled{opacity:.6;cursor:not-allowed}
+.btn-gps svg{flex-shrink:0}
+
+/* AREA PICKER */
+.loc-or{text-align:center;font-size:11px;color:var(--ink3);font-weight:700;font-family:var(--fh);margin:2px 0}
+.btn-area{width:100%;padding:10px 14px;border-radius:8px;border:2px solid #E2E4E9;background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;font-size:12px;transition:all .2s;text-align:left}
+.btn-area:hover{border-color:var(--orange);color:var(--orange)}
+.area-dropdown{display:none;background:white;border:2px solid var(--ink);border-radius:10px;margin-top:6px;max-height:200px;overflow-y:auto}
+.area-dropdown.show{display:block}
+.area-opt{padding:10px 14px;font-size:12px;cursor:pointer;font-family:var(--fh);font-weight:600;transition:background .15s;border-bottom:1px solid var(--off);display:flex;justify-content:space-between;align-items:center}
+.area-opt:last-child{border-bottom:none}
+.area-opt:hover{background:var(--off)}
+.area-zone{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;font-family:var(--fh)}
+
 /* GEO STATUS */
-.gs{border:2px dashed #E2E4E9;border-radius:10px;padding:12px 14px;margin:14px 0;display:flex;align-items:flex-start;gap:10px;transition:all .3s}
-.gs.pinned{border-color:var(--green);border-style:solid;background:#F0FDF4}
-.gpulse{width:10px;height:10px;border-radius:50%;background:var(--ink3);flex-shrink:0;margin-top:3px}
-.gpulse.live{background:var(--green);animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-.gt{color:var(--ink);font-family:var(--fh);font-weight:700;font-size:12px}
-.gsub{color:var(--ink3);font-size:11px;margin-top:3px}
-.zdet{display:inline-block;font-size:10px;padding:2px 8px;border-radius:5px;font-family:var(--fh);font-weight:700;margin-top:4px}
+.geo-status{border:2px dashed #D1D5DB;border-radius:10px;padding:12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;background:white;transition:all .3s}
+.geo-status.pinned{border-style:solid;border-color:var(--green);background:#F0FDF4}
+.geo-dot{width:10px;height:10px;border-radius:50%;background:#D1D5DB;flex-shrink:0;margin-top:2px;transition:background .3s}
+.geo-dot.live{background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.geo-lbl{font-family:var(--fh);font-weight:700;font-size:11px;color:var(--ink);margin-bottom:2px}
+.geo-sub2{font-size:10px;color:var(--ink3)}
+.zone-chip{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-family:var(--fh);font-weight:800;margin-top:4px;border:1px solid}
+
 /* BUTTONS */
-.btn{font-size:12px;padding:10px 16px;border-radius:8px;border:2px solid var(--ink);background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;letter-spacing:.02em;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-bottom:8px}
-.btn:hover{background:var(--off)}
-.btn.primary{background:var(--orange);color:white;border-color:var(--orange);font-size:13px;padding:12px}
-.btn.primary:hover{background:#e54d00}
-.btn.ghost{border-color:#E2E4E9;color:var(--ink2)}
-.btn.ghost:hover{border-color:var(--ink);color:var(--ink)}
-/* MAP */
-.mp{background:var(--white);border:2px solid var(--ink);border-radius:16px;overflow:hidden}
-.mh{padding:14px 18px;border-bottom:2px solid var(--off);display:flex;align-items:center;justify-content:space-between}
-.mht{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink)}
-.mhint{font-size:11px;color:white;background:var(--orange);border-radius:6px;padding:4px 10px;font-family:var(--fh);font-weight:700}
-#regMap{height:440px;width:100%}
-.mf{padding:10px 14px;border-top:2px solid var(--off);display:flex;gap:16px;font-size:11px;color:var(--ink3);background:var(--off)}
-.ml{display:flex;align-items:center;gap:5px;font-weight:600}
-.mld{width:10px;height:10px;border-radius:50%}
+.btn-submit{width:100%;padding:13px;border-radius:9px;border:2px solid var(--orange);background:var(--orange);color:white;cursor:pointer;font-family:var(--fh);font-weight:800;font-size:14px;transition:all .15s;letter-spacing:.02em}
+.btn-submit:hover{background:#e54d00;border-color:#e54d00}
+.btn-submit:active{transform:scale(.98)}
+
 /* MSG */
-.msg{font-size:12px;margin-top:10px;padding:8px 12px;border-radius:8px;display:none;line-height:1.5;font-weight:600}
+.msg{font-size:12px;margin-top:10px;padding:9px 12px;border-radius:8px;display:none;font-weight:600;line-height:1.5}
 .msg.show{display:block}
 .msg.ok{background:#F0FDF4;color:var(--green);border:2px solid #86EFAC}
-.msg.err{background:#FEF2F2;color:var(--rose,#DC2626);border:2px solid #FCA5A5}
+.msg.err{background:#FEF2F2;color:var(--rose);border:2px solid #FCA5A5}
+.msg.warn{background:#FFFBEB;color:var(--amber);border:2px solid #FDE68A}
+
 /* REGISTERED LIST */
-.rl{background:var(--off);border:2px solid #E2E4E9;border-radius:12px;padding:14px;margin-top:14px}
-.rlt{font-family:var(--fh);font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink2);text-transform:uppercase;margin-bottom:10px}
-.rlr{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:white;border:2px solid #E2E4E9;margin-bottom:5px;font-size:12px}
-.rln{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;font-family:var(--fh);flex-shrink:0}
-/* SUCCESS */
-.sov{display:none;position:fixed;inset:0;background:rgba(10,10,20,0.85);z-index:500;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:28px}
+.reg-list{background:var(--off);border:2px solid #E2E4E9;border-radius:10px;padding:12px;margin-top:14px;display:none}
+.reg-list-title{font-family:var(--fh);font-size:10px;font-weight:800;letter-spacing:.07em;color:var(--ink3);text-transform:uppercase;margin-bottom:8px}
+.reg-item{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:7px;background:white;border:2px solid #E2E4E9;margin-bottom:4px}
+.reg-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;font-family:var(--fh);flex-shrink:0}
+
+/* ── MAP PANEL ── */
+.map-panel{background:var(--white);border:2px solid var(--ink);border-radius:16px;overflow:hidden}
+.map-header{padding:14px 18px;border-bottom:2px solid var(--off);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.map-title{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink)}
+.map-hint{font-size:11px;color:white;background:var(--orange);border-radius:6px;padding:4px 10px;font-family:var(--fh);font-weight:800}
+#map{height:440px;width:100%}
+.map-footer{padding:10px 16px;border-top:2px solid var(--off);display:flex;gap:12px;background:var(--off);flex-wrap:wrap}
+.map-leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink3);font-weight:700}
+.mld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── SUCCESS OVERLAY ── */
+.sov{display:none;position:fixed;inset:0;background:rgba(10,10,20,.88);z-index:9999;align-items:center;justify-content:center;padding:20px}
 .sov.show{display:flex}
-.sbox{background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;border:3px solid var(--ink)}
-.sicon{width:64px;height:64px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:28px;color:white}
-.stl{font-family:var(--fh);font-size:24px;font-weight:800;color:var(--ink);margin-bottom:6px}
-.stsb{font-size:13px;color:var(--ink3);margin-bottom:14px}
-.szb{font-family:var(--fh);font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;display:inline-block;margin-bottom:22px;border:2px solid}
-.sa{display:flex;gap:10px;justify-content:center}
-.sbtn{padding:10px 20px;border-radius:8px;font-family:var(--fh);font-weight:700;font-size:13px;cursor:pointer;border:2px solid;transition:all .15s;text-decoration:none;display:inline-block}
-/* LEAFLET OVERRIDES */
-.leaflet-container{background:#f0f4f8!important}
-.leaflet-popup-content-wrapper{background:white!important;border:2px solid var(--ink)!important;color:var(--ink)!important;border-radius:10px!important;box-shadow:none!important;font-family:var(--fb)!important}
+.sbox{background:white;border:3px solid var(--ink);border-radius:18px;padding:36px;max-width:420px;width:100%;text-align:center}
+.sicon{width:60px;height:60px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;color:white;font-weight:800}
+.stitle{font-family:var(--fh);font-size:22px;font-weight:800;color:var(--ink);margin-bottom:5px}
+.ssub{font-size:12px;color:var(--ink3);margin-bottom:12px}
+.szone{font-family:var(--fh);font-size:12px;font-weight:800;padding:6px 16px;border-radius:7px;display:inline-block;margin-bottom:20px;border:2px solid}
+.sbtns{display:flex;gap:8px;justify-content:center}
+.sbtn{padding:10px 18px;border-radius:8px;font-family:var(--fh);font-weight:800;font-size:12px;cursor:pointer;border:2px solid;transition:all .15s;text-decoration:none;display:inline-block}
+
+/* Leaflet */
+.leaflet-container{background:#EEF2FF!important}
+.leaflet-popup-content-wrapper{background:white!important;border:2px solid var(--ink)!important;border-radius:10px!important;box-shadow:none!important;font-family:var(--fb)!important}
 .leaflet-popup-tip{background:white!important}
-.leaflet-control-zoom a{background:white!important;color:var(--ink)!important;border:2px solid var(--ink)!important;font-weight:700!important}
-.leaflet-control-attribution{background:rgba(255,255,255,.8)!important;color:var(--ink3)!important;font-size:9px!important}
-@media(max-width:760px){.layout{grid-template-columns:1fr}.fc{position:static}#regMap{height:300px}nav{padding:0 16px}.page{padding:20px 16px}}
+.leaflet-control-zoom a{background:white!important;color:var(--ink)!important;border:2px solid var(--ink)!important;font-weight:800!important}
+.leaflet-control-zoom a:hover{background:var(--ink)!important;color:white!important}
+.leaflet-control-attribution{background:rgba(255,255,255,.8)!important;font-size:9px!important}
+
+@media(max-width:820px){
+  .layout{grid-template-columns:1fr}
+  .form-panel{position:static}
+  #map{height:300px}
+  nav{padding:0 14px}
+  .page{padding:18px 14px}
+  .page-title{font-size:26px}
+}
 </style>
 </head>
 <body>
+
 <nav>
-  <a class="logo" href="index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
-  <a class="bk" href="index.html">← Home</a>
-</nav>
-<div class="page">
-  <div class="ph">
-    <div class="ey">Business Registration</div>
-    <h1 class="pt">Pin your shop on Jodhpur</h1>
-    <p class="ps">Tap your exact location on the map below. Navadhar auto-detects your delivery zone and adds you to the route instantly.</p>
+  <a class="logo" href="./index.html">
+    <div class="lm">N</div>
+    <span class="lt">NAVADHAR</span>
+  </a>
+  <div class="nav-links">
+    <a class="nbtn" href="./admin.html">Admin</a>
+    <a class="nbtn" href="./index.html">&#8592; Home</a>
   </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="eyebrow">Business Registration</div>
+    <h1 class="page-title">Pin your shop on Jodhpur</h1>
+    <p class="page-sub">Tap your location on the map OR use GPS OR pick your area below. Navadhar auto-assigns your delivery zone instantly.</p>
+  </div>
+
   <div class="layout">
-    <div class="fc">
-      <div class="ct"><div class="ctbar"></div>Business Details</div>
-      <div class="field"><label>Business / Shop Name</label><input id="biz" placeholder="e.g. Sharma Textiles" maxlength="60"/></div>
-      <div class="row2">
-        <div class="field"><label>Owner Name</label><input id="owner" placeholder="Ramesh Sharma" maxlength="40"/></div>
-        <div class="field"><label>Phone</label><input id="phone" placeholder="+91 98765 43210" maxlength="20"/></div>
+
+    <!-- FORM PANEL -->
+    <div class="form-panel">
+      <div class="panel-title"><div class="panel-bar"></div>Business Details</div>
+
+      <div class="field">
+        <label>Business / Shop Name *</label>
+        <input type="text" id="f-biz" placeholder="e.g. Sharma Textiles" maxlength="60" autocomplete="organization"/>
       </div>
-      <div class="field"><label>Business Category</label>
-        <select id="cat">
+      <div class="row2">
+        <div class="field">
+          <label>Owner Name</label>
+          <input type="text" id="f-owner" placeholder="Ramesh Sharma" maxlength="40"/>
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="tel" id="f-phone" placeholder="+91 98765 43210" maxlength="20"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="f-cat">
           <option value="">Select category</option>
-          <option>Textiles &amp; Garments</option><option>Electronics</option>
-          <option>Groceries &amp; FMCG</option><option>Handicrafts &amp; Exports</option>
-          <option>Pharmaceuticals</option><option>Hardware &amp; Building</option>
-          <option>Food &amp; Beverages</option><option>Other</option>
+          <option>Textiles &amp; Garments</option>
+          <option>Electronics</option>
+          <option>Groceries &amp; FMCG</option>
+          <option>Handicrafts &amp; Exports</option>
+          <option>Pharmaceuticals</option>
+          <option>Hardware &amp; Building</option>
+          <option>Food &amp; Beverages</option>
+          <option>Stationery &amp; Office</option>
+          <option>Other</option>
         </select>
       </div>
-      <div class="field"><label>Location</label>
-        <button class="btn ghost" onclick="detectLocation()">📍 Detect My GPS Location</button>
+
+      <!-- LOCATION METHODS -->
+      <div class="loc-section">
+        <div class="loc-title">Pin Your Location</div>
+        <div class="loc-methods">
+
+          <!-- GPS -->
+          <button class="btn-gps" id="gps-btn" onclick="tryGPS()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="3" stroke="white" stroke-width="1.8"/>
+              <path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span id="gps-btn-text">Use My Current GPS Location</span>
+          </button>
+
+          <div class="loc-or">— or pick your area —</div>
+
+          <!-- AREA PICKER -->
+          <button class="btn-area" onclick="toggleAreaDropdown()">
+            &#128205; <span id="area-label">Select your area in Jodhpur</span>
+          </button>
+          <div class="area-dropdown" id="area-dropdown"></div>
+
+          <div class="loc-or">— or tap directly on the map —</div>
+          <div style="font-size:11px;color:var(--ink3);text-align:center;font-weight:600">Tap anywhere on the map on the right to drop a pin</div>
+        </div>
       </div>
-      <div class="gs" id="gs">
-        <div class="gpulse" id="gp"></div>
+
+      <!-- GEO STATUS -->
+      <div class="geo-status" id="geo-status">
+        <div class="geo-dot" id="geo-dot"></div>
         <div>
-          <div class="gt" id="gt">No location pinned yet</div>
-          <div class="gsub" id="gsub">Tap the map on the right to drop your pin</div>
+          <div class="geo-lbl" id="geo-lbl">No location pinned yet</div>
+          <div class="geo-sub2" id="geo-sub">Tap map, use GPS, or pick an area above</div>
+          <div id="geo-zone"></div>
         </div>
       </div>
-      <button class="btn primary" onclick="submitBusiness()">✓ Register My Business</button>
+
+      <button class="btn-submit" onclick="submitBusiness()">&#10003; &nbsp;Register My Business</button>
       <div id="msg" class="msg"></div>
-      <div class="rl" id="rl" style="display:none">
-        <div class="rlt">Registered businesses</div>
-        <div id="rlItems"></div>
+
+      <div class="reg-list" id="reg-list">
+        <div class="reg-list-title">Registered businesses</div>
+        <div id="reg-items"></div>
       </div>
     </div>
-    <div>
-      <div class="mp">
-        <div class="mh">
-          <span class="mht">Jodhpur City Map</span>
-          <span class="mhint">Tap anywhere to pin</span>
-        </div>
-        <div id="regMap"></div>
-        <div class="mf">
-          <div class="ml"><div class="mld" style="background:#FF5C00"></div>City Center (Ghanta Ghar)</div>
-          <div class="ml"><div class="mld" style="background:#16A34A"></div>Your pin (draggable)</div>
-          <div class="ml"><div class="mld" style="background:#6C2BD9"></div>Registered businesses</div>
-        </div>
+
+    <!-- MAP PANEL -->
+    <div class="map-panel">
+      <div class="map-header">
+        <span class="map-title">Jodhpur City Map</span>
+        <span class="map-hint">Tap anywhere to pin location</span>
+      </div>
+      <div id="map"></div>
+      <div class="map-footer">
+        <div class="map-leg"><div class="mld" style="background:#FF5C00"></div>City Center (Ghanta Ghar)</div>
+        <div class="map-leg"><div class="mld" style="background:#16A34A"></div>Your pin (draggable)</div>
+        <div class="map-leg"><div class="mld" style="background:#6C2BD9"></div>Registered businesses</div>
       </div>
     </div>
+
   </div>
 </div>
+
+<!-- SUCCESS -->
 <div class="sov" id="sov">
   <div class="sbox">
-    <div class="sicon">✓</div>
-    <div class="stl">You're registered!</div>
-    <div class="stsb" id="sbiz"></div>
-    <div class="szb" id="szone"></div>
-    <div class="sa">
-      <button class="sbtn" style="background:white;color:var(--ink);border-color:var(--ink)" onclick="document.getElementById('sov').classList.remove('show')">Register Another</button>
-      <a class="sbtn" style="background:var(--orange);color:white;border-color:var(--orange)" href="index.html">Back to Home</a>
+    <div class="sicon">&#10003;</div>
+    <div class="stitle">You're registered!</div>
+    <div class="ssub" id="suc-biz"></div>
+    <div class="szone" id="suc-zone"></div>
+    <div class="sbtns">
+      <button class="sbtn" style="background:white;color:var(--ink);border-color:var(--ink)" onclick="closeSuccess()">Register Another</button>
+      <a class="sbtn" style="background:var(--orange);color:white;border-color:var(--orange)" href="./index.html">Back to Home</a>
     </div>
   </div>
 </div>
 
-
 <script>
-window.addEventListener('load', function(){
+// ═══ DATA ═══
+var CENTER = {lat:26.2389, lng:73.0243};
+var ZONE_META = {
+  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9'},
+  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7'},
+  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626'},
+  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706'}
+};
 
-const ZM=ZONE_META;
-let rLat=null,rLng=null,rMap=null,rMarker=null;
+// Jodhpur areas with real coordinates
+var JODHPUR_AREAS = [
+  {name:'Sardarpura',      lat:29.950, lng:73.017, zone:'North'},
+  {name:'Paota',           lat:26.312, lng:73.024, zone:'North'},
+  {name:'Shastri Nagar',   lat:26.320, lng:73.018, zone:'North'},
+  {name:'Basni',           lat:26.305, lng:73.010, zone:'North'},
+  {name:'Chopasni Housing Board', lat:26.295, lng:73.058, zone:'East'},
+  {name:'Pratap Nagar',    lat:26.280, lng:73.065, zone:'East'},
+  {name:'Pal Road',        lat:26.260, lng:73.058, zone:'East'},
+  {name:'Airport Road',    lat:26.270, lng:73.070, zone:'East'},
+  {name:'Mahamandir',      lat:26.220, lng:73.024, zone:'South'},
+  {name:'Bhagat Ki Kothi', lat:26.205, lng:73.010, zone:'South'},
+  {name:'Salawas Road',    lat:26.195, lng:73.024, zone:'South'},
+  {name:'Mandore Road',    lat:26.180, lng:73.030, zone:'South'},
+  {name:'Ratanada',        lat:26.239, lng:72.980, zone:'West'},
+  {name:'Residency Road',  lat:26.250, lng:72.965, zone:'West'},
+  {name:'Kamla Nehru Nagar',lat:26.260,lng:72.950, zone:'West'},
+  {name:'Kalyanpur',       lat:26.270, lng:72.940, zone:'West'},
+];
+
+// Fix Sardarpura lat (typo above)
+JODHPUR_AREAS[0].lat = 26.295;
+
+function haversine(la1,lo1,la2,lo2){
+  var R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
+  var a=Math.sin(d1/2)*Math.sin(d1/2)+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)*Math.sin(d2/2);
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function getZone(lat,lng){
+  var dLat=lat-CENTER.lat, dLng=lng-CENTER.lng;
+  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
+}
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+
+// ═══ STATE ═══
+var navMap=null, pinMarker=null, pinLat=null, pinLng=null;
+
+// ═══ MAP INIT ═══
 function initMap(){
-  rMap=L.map('regMap').setView([CENTER.lat,CENTER.lng],13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(rMap);
-  L.marker([CENTER.lat,CENTER.lng],{icon:L.divIcon({className:'',html:'<div style="width:16px;height:16px;border-radius:50%;background:#FF5C00;border:3px solid white;box-shadow:0 0 0 4px rgba(255,92,0,0.3)"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(rMap).bindPopup('<b style="font-family:Syne;color:#FF5C00">Ghanta Ghar — City Center</b>');
-  loadPickups().forEach(p=>{
-    const c=ZM[p.zone];if(!c)return;
-    L.circleMarker([p.lat,p.lng],{radius:6,fillColor:c.solid,color:'white',weight:2,fillOpacity:0.9}).addTo(rMap).bindPopup(`<b style="font-family:Syne;color:${c.solid}">${p.biz}</b><br><span style="font-size:11px">${p.zone} Zone · ${p.dist}m from center</span>`);
+  navMap = L.map('map').setView([CENTER.lat, CENTER.lng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; OpenStreetMap contributors', maxZoom:19
+  }).addTo(navMap);
+
+  // Center marker
+  var ci = L.divIcon({className:'',
+    html:'<div style="width:18px;height:18px;border-radius:50%;background:#FF5C00;border:3px solid white;box-shadow:0 0 0 4px rgba(255,92,0,.3)"></div>',
+    iconSize:[18,18],iconAnchor:[9,9]});
+  L.marker([CENTER.lat,CENTER.lng],{icon:ci}).addTo(navMap)
+    .bindPopup('<b style="font-family:Syne;color:#FF5C00;font-size:13px">Ghanta Ghar</b><br><small style="color:#888">City Center &middot; Jodhpur</small>');
+
+  // Existing businesses
+  loadPickups().forEach(function(p){
+    var c=ZONE_META[p.zone]; if(!c)return;
+    var bi=L.divIcon({className:'',
+      html:'<div style="width:12px;height:12px;border-radius:50%;background:'+c.solid+';border:2px solid white;"></div>',
+      iconSize:[12,12],iconAnchor:[6,6]});
+    L.marker([p.lat,p.lng],{icon:bi}).addTo(navMap)
+      .bindPopup('<b style="font-family:Syne;color:'+c.solid+'">'+p.biz+'</b><br><small style="color:#888">'+p.zone+' Zone &middot; '+p.dist+'m</small>');
   });
-  rMap.on('click',e=>setPin(e.latlng.lat,e.latlng.lng));
+
+  // Tap to place pin
+  navMap.on('click', function(e){ placePin(e.latlng.lat, e.latlng.lng, true); });
 }
-function setPin(lat,lng){
-  rLat=lat;rLng=lng;
-  if(rMarker)rMap.removeLayer(rMarker);
-  rMarker=L.marker([lat,lng],{draggable:true,icon:L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:#16A34A;border:3px solid white;box-shadow:0 2px 12px rgba(0,0,0,0.3)"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(rMap);
-  rMarker.on('dragend',ev=>{rLat=ev.target.getLatLng().lat;rLng=ev.target.getLatLng().lng;updateGS();});
-  updateGS();
+
+// ═══ PLACE PIN ═══
+function placePin(lat, lng, animate){
+  pinLat=lat; pinLng=lng;
+  if(pinMarker) navMap.removeLayer(pinMarker);
+
+  var pi = L.divIcon({className:'',
+    html:'<div style="width:24px;height:24px;border-radius:50%;background:#16A34A;border:3px solid white;box-shadow:0 3px 14px rgba(0,0,0,.3);cursor:grab"></div>',
+    iconSize:[24,24],iconAnchor:[12,12]});
+
+  pinMarker = L.marker([lat,lng],{icon:pi,draggable:true}).addTo(navMap);
+
+  pinMarker.on('drag', function(e){
+    pinLat=e.latlng.lat; pinLng=e.latlng.lng; updateStatus();
+  });
+  pinMarker.on('dragend', function(e){
+    pinLat=e.target.getLatLng().lat; pinLng=e.target.getLatLng().lng; updateStatus();
+  });
+
+  if(animate) navMap.setView([lat,lng], Math.max(navMap.getZoom(), 15));
+  updateStatus();
 }
-function updateGS(){
-  if(!rLat)return;
-  const zone=getZone(rLat,rLng),dist=haversine(CENTER.lat,CENTER.lng,rLat,rLng),c=ZM[zone];
-  document.getElementById('gs').className='gs pinned';
-  document.getElementById('gp').className='gpulse live';
-  document.getElementById('gt').innerHTML=`${rLat.toFixed(5)}, ${rLng.toFixed(5)} <span class="zdet" style="background:${c.light};color:${c.text}">${zone} Zone</span>`;
-  document.getElementById('gsub').textContent=`${dist}m from city center · Drag the pin to fine-tune`;
+
+// ═══ UPDATE STATUS BOX ═══
+function updateStatus(){
+  if(!pinLat||!pinLng) return;
+  var zone=getZone(pinLat,pinLng), dist=haversine(CENTER.lat,CENTER.lng,pinLat,pinLng), c=ZONE_META[zone];
+  document.getElementById('geo-status').className='geo-status pinned';
+  document.getElementById('geo-dot').className='geo-dot live';
+  document.getElementById('geo-lbl').textContent=pinLat.toFixed(5)+', '+pinLng.toFixed(5);
+  document.getElementById('geo-sub').textContent=dist+'m from city center \u00b7 Drag pin to adjust';
+  document.getElementById('geo-zone').innerHTML=
+    '<span class="zone-chip" style="background:'+c.light+';color:'+c.text+';border-color:'+c.solid+'">'+zone+' Zone</span>';
 }
-function detectLocation(){
-  if(!navigator.geolocation){showMsg('GPS not supported on this device','err');return;}
-  showMsg('Detecting your location...','ok');
-  navigator.geolocation.getCurrentPosition(p=>{setPin(p.coords.latitude,p.coords.longitude);rMap.setView([p.coords.latitude,p.coords.longitude],16);showMsg('Location detected! Drag the pin to fine-tune.','ok');},()=>showMsg('Could not detect GPS. Please tap the map manually.','err'));
+
+// ═══ GPS BUTTON ═══
+function tryGPS(){
+  var btn=document.getElementById('gps-btn');
+  var txt=document.getElementById('gps-btn-text');
+
+  // Check support
+  if(!navigator.geolocation){
+    showMsg('GPS not supported on this browser. Use the area picker or tap the map.','warn');
+    return;
+  }
+
+  btn.disabled=true;
+  txt.textContent='Locating... please wait';
+
+  navigator.geolocation.getCurrentPosition(
+    // SUCCESS
+    function(pos){
+      btn.disabled=false;
+      txt.textContent='Use My Current GPS Location';
+      var lat=pos.coords.latitude, lng=pos.coords.longitude;
+      navMap.setView([lat,lng], 17);
+      placePin(lat, lng, false);
+      showMsg('GPS location found! Drag the green pin to fine-tune if needed.','ok');
+    },
+    // ERROR
+    function(err){
+      btn.disabled=false;
+      txt.textContent='Use My Current GPS Location';
+      var m = {
+        1:'Location access was denied. Please allow location permission in your browser, then try again.',
+        2:'GPS signal not available right now. Please tap the map or pick your area instead.',
+        3:'Location request timed out. Please tap the map or pick your area instead.'
+      };
+      showMsg(m[err.code]||'Could not get GPS. Tap the map or pick your area instead.','warn');
+    },
+    // OPTIONS
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+  );
 }
+
+// ═══ AREA DROPDOWN ═══
+function buildAreaDropdown(){
+  var dd=document.getElementById('area-dropdown');
+  var zones=['North','East','South','West'];
+  var zc={North:'#6C2BD9',East:'#0284C7',South:'#DC2626',West:'#D97706'};
+  var zl={North:'#EDE9FF',East:'#E0F2FE',South:'#FEE2E2',West:'#FEF3C7'};
+  var html='';
+  zones.forEach(function(z){
+    var areas=JODHPUR_AREAS.filter(function(a){return a.zone===z;});
+    areas.forEach(function(a){
+      html+='<div class="area-opt" onclick="selectArea('+a.lat+','+a.lng+',\''+a.name+'\')">'
+        +'<span>'+a.name+'</span>'
+        +'<span class="area-zone" style="background:'+zl[z]+';color:'+zc[z]+'">'+z+'</span>'
+        +'</div>';
+    });
+  });
+  dd.innerHTML=html;
+}
+
+function toggleAreaDropdown(){
+  var dd=document.getElementById('area-dropdown');
+  dd.classList.toggle('show');
+}
+
+function selectArea(lat,lng,name){
+  document.getElementById('area-dropdown').classList.remove('show');
+  document.getElementById('area-label').textContent=name;
+  navMap.setView([lat,lng],16);
+  placePin(lat,lng,false);
+  showMsg('Pinned to '+name+'. Drag the green pin to your exact shop location.','ok');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e){
+  var dd=document.getElementById('area-dropdown');
+  if(dd && !e.target.closest('.btn-area') && !e.target.closest('.area-dropdown')){
+    dd.classList.remove('show');
+  }
+});
+
+// ═══ SUBMIT ═══
 function submitBusiness(){
-  const biz=document.getElementById('biz').value.trim();
-  const owner=document.getElementById('owner').value.trim();
-  const phone=document.getElementById('phone').value.trim();
-  const cat=document.getElementById('cat').value;
-  if(!biz){showMsg('Please enter your business name','err');return;}
-  if(!rLat||!rLng){showMsg('Please tap the map to pin your location','err');return;}
-  const zone=getZone(rLat,rLng),dist=haversine(CENTER.lat,CENTER.lng,rLat,rLng);
-  const all=loadPickups();
-  all.push({id:Date.now(),biz,owner,phone,category:cat,lat:rLat,lng:rLng,zone,dist});
+  var biz=document.getElementById('f-biz').value.trim();
+  var owner=document.getElementById('f-owner').value.trim();
+  var phone=document.getElementById('f-phone').value.trim();
+  var cat=document.getElementById('f-cat').value;
+
+  if(!biz){showMsg('Please enter your business name.','err');document.getElementById('f-biz').focus();return;}
+  if(!pinLat||!pinLng){showMsg('Please pin your location — use GPS, pick an area, or tap the map.','err');return;}
+
+  var zone=getZone(pinLat,pinLng);
+  var dist=haversine(CENTER.lat,CENTER.lng,pinLat,pinLng);
+  var c=ZONE_META[zone];
+
+  var all=loadPickups();
+  all.push({id:Date.now(),biz:biz,owner:owner,phone:phone,category:cat,lat:pinLat,lng:pinLng,zone:zone,dist:dist});
   savePickups(all);
-  const c=ZM[zone];
-  document.getElementById('sbiz').textContent=`"${biz}" added to the Navadhar network`;
-  const zb=document.getElementById('szone');
-  zb.textContent=`${zone} Zone — ${dist}m from center`;
-  zb.style.background=c.light;zb.style.color=c.text;zb.style.borderColor=c.solid;
-  document.getElementById('sov').classList.add('show');
-  ['biz','owner','phone'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('cat').value='';
-  if(rMarker){rMap.removeLayer(rMarker);rMarker=null;}
-  rLat=null;rLng=null;
-  document.getElementById('gs').className='gs';
-  document.getElementById('gp').className='gpulse';
-  document.getElementById('gt').textContent='No location pinned yet';
-  document.getElementById('gsub').textContent='Tap the map on the right to drop your pin';
+
+  // Show success
+  document.getElementById('suc-biz').textContent='"'+biz+'" added to the Navadhar network.';
+  var zb=document.getElementById('suc-zone');
+  zb.textContent=zone+' Zone \u2014 '+dist+'m from city center';
+  zb.style.background=c.light; zb.style.color=c.text; zb.style.borderColor=c.solid;
+  document.getElementById('sov').className='sov show';
+
+  // Reset form
+  document.getElementById('f-biz').value='';
+  document.getElementById('f-owner').value='';
+  document.getElementById('f-phone').value='';
+  document.getElementById('f-cat').value='';
+  document.getElementById('area-label').textContent='Select your area in Jodhpur';
+  if(pinMarker){navMap.removeLayer(pinMarker);pinMarker=null;}
+  pinLat=null; pinLng=null;
+  document.getElementById('geo-status').className='geo-status';
+  document.getElementById('geo-dot').className='geo-dot';
+  document.getElementById('geo-lbl').textContent='No location pinned yet';
+  document.getElementById('geo-sub').textContent='Tap map, use GPS, or pick an area above';
+  document.getElementById('geo-zone').innerHTML='';
   renderList();
 }
-function renderList(){
-  const all=loadPickups();
-  if(!all.length){document.getElementById('rl').style.display='none';return;}
-  document.getElementById('rl').style.display='block';
-  let h='';
-  ['North','East','South','West'].forEach(z=>{
-    const zp=all.filter(p=>p.zone===z).sort((a,b)=>a.dist-b.dist);
-    if(!zp.length)return;
-    const c=ZM[z];
-    zp.forEach((p,i)=>{h+=`<div class="rlr"><div class="rln" style="background:${c.solid}">${i+1}</div><div style="flex:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.biz}</div><div style="font-size:10px;color:var(--ink3)">${z} · ${p.dist}m</div></div></div>`;});
-  });
-  document.getElementById('rlItems').innerHTML=h;
-}
-function showMsg(txt,type){const el=document.getElementById('msg');el.textContent=txt;el.className='msg show '+type;setTimeout(()=>el.classList.remove('show'),5000);}
-initMap();renderList();
 
+function closeSuccess(){document.getElementById('sov').className='sov';}
+
+// ═══ MSG ═══
+function showMsg(txt,type){
+  var el=document.getElementById('msg');
+  el.textContent=txt; el.className='msg show '+type;
+  clearTimeout(el._t); el._t=setTimeout(function(){el.classList.remove('show');},6000);
+}
+
+// ═══ REGISTERED LIST ═══
+function renderList(){
+  var all=loadPickups(), el=document.getElementById('reg-list');
+  if(!all.length){el.style.display='none';return;}
+  el.style.display='block';
+  var html='';
+  ['North','East','South','West'].forEach(function(z){
+    var zp=all.filter(function(p){return p.zone===z;}).sort(function(a,b){return a.dist-b.dist;});
+    if(!zp.length)return;
+    var c=ZONE_META[z];
+    zp.forEach(function(p,i){
+      html+='<div class="reg-item">'
+        +'<div class="reg-num" style="background:'+c.solid+'">'+(i+1)+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.biz+'</div>'
+        +'<div style="font-size:10px;color:#8888A0">'+z+' \u00b7 '+p.dist+'m</div>'
+        +'</div></div>';
+    });
+  });
+  document.getElementById('reg-items').innerHTML=html;
+}
+
+// ═══ BOOT ═══
+window.addEventListener('load', function(){
+  initMap();
+  buildAreaDropdown();
+  renderList();
 });
 </script>
-
 </body>
 </html>
