@@ -40,7 +40,6 @@ a.nb:hover{background:var(--ink);color:#fff}
 .big-inp{width:100%;padding:14px;border:2px solid #E2E4E9;border-radius:9px;font-size:16px;color:var(--ink);background:var(--off);font-family:'DM Sans',sans-serif;outline:none;transition:border .15s;text-align:center;letter-spacing:.05em}
 .big-inp:focus{border-color:var(--or);background:#fff}
 .big-inp::placeholder{color:#C0C4CC;letter-spacing:0;font-size:14px}
-.otp-inp{font-size:28px;letter-spacing:.4em;font-weight:800;font-family:'Syne',sans-serif}
 .pbtn{width:100%;padding:13px;margin-top:10px;background:var(--or);color:#fff;border:2px solid var(--or);border-radius:9px;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;cursor:pointer;transition:all .15s}
 .pbtn:hover{background:#e54d00}
 .pbtn:disabled{opacity:.5;cursor:not-allowed}
@@ -51,9 +50,6 @@ a.nb:hover{background:var(--ink);color:#fff}
 .amsg.ok{background:#F0FDF4;color:var(--gr);border:2px solid #86EFAC}
 .amsg.err{background:#FEF2F2;color:var(--re);border:2px solid #FCA5A5}
 .amsg.warn{background:#FFFBEB;color:var(--am);border:2px solid #FDE68A}
-.timer{margin-top:10px;font-size:12px;color:#8888A0;font-weight:600}
-.resend{margin-top:8px;font-size:12px;color:#8888A0}
-.resend b{color:var(--or);cursor:pointer;text-decoration:underline}
 
 .eyebrow{font-size:11px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--or);margin-bottom:5px}
 .heading{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--ink);margin-bottom:5px}
@@ -180,40 +176,23 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
 </div>
 
 <div class="steps" id="steps-bar">
-  <div class="si active" id="s1"><div class="sn">1</div><span>Verify Phone</span></div>
+  <div class="si active" id="s1"><div class="sn">1</div><span>Your Phone</span></div>
   <div class="sl" id="sl1"></div>
   <div class="si" id="s2"><div class="sn">2</div><span>Business Details</span></div>
   <div class="sl" id="sl2"></div>
   <div class="si" id="s3"><div class="sn">3</div><span>Get Your QR</span></div>
 </div>
 
-<!-- SCREEN 1: PHONE -->
+<!-- SCREEN 1: PHONE (goes straight to details — verification is via WA/Email link) -->
 <div class="screen active" id="sc-phone">
   <div class="auth-wrap">
     <div class="auth-card">
-      <div class="auth-icon">📱</div>
-      <div class="auth-title">Verify your phone</div>
-      <div class="auth-sub">Enter your mobile number to get a verification code. This protects your business account.</div>
+      <div class="auth-icon">&#128241;</div>
+      <div class="auth-title">Enter your mobile number</div>
+      <div class="auth-sub">We'll use this to send your verification link via WhatsApp or Email after registration &#8212; no OTP needed.</div>
       <input class="big-inp" type="tel" id="phone-inp" placeholder="+91 98765 43210" maxlength="15" oninput="validatePhone()"/>
-      <button class="pbtn" id="send-otp-btn" onclick="sendOTP()" disabled>Send OTP</button>
+      <button class="pbtn" id="continue-btn" onclick="goToDetails()" disabled>Continue &#8594;</button>
       <div class="amsg" id="phone-msg"></div>
-    </div>
-  </div>
-</div>
-
-<!-- SCREEN 1B: OTP -->
-<div class="screen" id="sc-otp">
-  <div class="auth-wrap">
-    <div class="auth-card">
-      <div class="auth-icon">🔐</div>
-      <div class="auth-title">Enter OTP</div>
-      <div class="auth-sub" id="otp-sub">We sent a 6-digit code to your number. Enter it below.</div>
-      <input class="big-inp otp-inp" type="number" id="otp-inp" placeholder="000000" maxlength="6" oninput="validateOTP()"/>
-      <button class="pbtn" id="verify-btn" onclick="verifyOTP()" disabled>Verify &amp; Continue</button>
-      <button class="gbtn" onclick="goBack()">&#8592; Change number</button>
-      <div class="timer" id="otp-timer"></div>
-      <div class="resend" id="resend-row" style="display:none">Didn't receive it? <b onclick="resendOTP()">Resend OTP</b></div>
-      <div class="amsg" id="otp-msg"></div>
     </div>
   </div>
 </div>
@@ -227,7 +206,7 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
   <div class="two-col">
     <div class="fc">
       <div class="fct"><div class="obar"></div>Business Details</div>
-      <div class="vbadge">&#10003; Phone Verified: <span id="verified-phone"></span></div>
+      <div class="vbadge">&#128241; Mobile: <span id="verified-phone"></span></div>
 
       <div class="field"><label>Business / Shop Name *</label><input class="fi" type="text" id="f-biz" placeholder="e.g. Sharma Textiles" maxlength="60"/></div>
       <div class="r2">
@@ -361,52 +340,23 @@ function db(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}
 function save(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
 function nextID(){var all=db();var nums=all.map(function(p){return parseInt(p.bizId.replace('NVD-',''))||0;});var max=nums.length?Math.max.apply(null,nums):0;return 'NVD-'+(max+1).toString().padStart(3,'0');}
 
-// ── AUTH ──
-var verifiedPhone='',generatedOTP='',otpTimer=null,timerSec=0;
+// ── PHONE CAPTURE ──
+// No OTP — verification happens via WhatsApp/Email link after registration
+var verifiedPhone='';
 
 function validatePhone(){
   var v=document.getElementById('phone-inp').value.replace(/\D/g,'');
-  document.getElementById('send-otp-btn').disabled=v.length<10;
+  document.getElementById('continue-btn').disabled=v.length<10;
 }
-function sendOTP(){
+function goToDetails(){
   var raw=document.getElementById('phone-inp').value.trim();
   var digits=raw.replace(/\D/g,'');
   if(digits.length<10){showAMsg('phone-msg','Please enter a valid 10-digit mobile number.','err');return;}
-  generatedOTP=Math.floor(100000+Math.random()*900000).toString();
   verifiedPhone=raw;
-  document.getElementById('otp-sub').textContent='Demo OTP for '+raw+': '+generatedOTP;
-  showScreen('sc-otp');setStep(2,'active');startTimer(120);
-  showAMsg('otp-msg','OTP generated! In production this would be sent via SMS.','warn');
-}
-function validateOTP(){
-  document.getElementById('verify-btn').disabled=document.getElementById('otp-inp').value.length!==6;
-}
-function verifyOTP(){
-  if(document.getElementById('otp-inp').value.trim()===generatedOTP){
-    clearInterval(otpTimer);
-    document.getElementById('verified-phone').textContent=verifiedPhone;
-    showScreen('sc-details');setStep(2,'done');setStep(3,'active');
-    setTimeout(initMap,200);
-  } else {
-    showAMsg('otp-msg','Incorrect OTP. Please try again.','err');
-    document.getElementById('otp-inp').value='';
-    document.getElementById('verify-btn').disabled=true;
-  }
-}
-function resendOTP(){
-  generatedOTP=Math.floor(100000+Math.random()*900000).toString();
-  document.getElementById('otp-sub').textContent='New demo OTP for '+verifiedPhone+': '+generatedOTP;
-  startTimer(120);document.getElementById('resend-row').style.display='none';
-  showAMsg('otp-msg','New OTP sent!','ok');
-}
-function goBack(){clearInterval(otpTimer);showScreen('sc-phone');setStep(2,'');}
-function startTimer(sec){
-  timerSec=sec;document.getElementById('resend-row').style.display='none';clearInterval(otpTimer);
-  otpTimer=setInterval(function(){
-    timerSec--;
-    if(timerSec<=0){clearInterval(otpTimer);document.getElementById('otp-timer').textContent='';document.getElementById('resend-row').style.display='block';}
-    else{var m=Math.floor(timerSec/60),s=timerSec%60;document.getElementById('otp-timer').textContent='Resend in '+m+':'+(s<10?'0':'')+s;}
-  },1000);
+  document.getElementById('verified-phone').textContent=raw;
+  showScreen('sc-details');
+  setStep(1,'done');setStep(2,'active');
+  setTimeout(initMap,200);
 }
 
 // ── STEPS / SCREENS ──
