@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+const CENTER={lat:26.2389,lng:73.0243};
+const ZONE_META={
+  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',vehicles:['VH-N01']},
+  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',vehicles:['VH-E01']},
+  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',vehicles:['VH-S01']},
+  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706',vehicles:['VH-W01']}
+};
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function getZone(lat,lng){
+  const dLat=lat-CENTER.lat,dLng=lng-CENTER.lng;
+  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
+}
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+function zonePickups(zone){return loadPickups().filter(p=>p.zone===zone).sort((a,b)=>a.dist-b.dist);}
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin Dashboard — Navadhar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--white:#fff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;--orange:#FF5C00;--violet:#6C2BD9;--sky:#0284C7;--rose:#DC2626;--amber:#D97706;--green:#16A34A;--fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif}
+html,body{min-height:100vh;background:var(--off);color:var(--ink);font-family:var(--fb)}
+nav{background:var(--white);border-bottom:2px solid var(--ink);padding:0 28px;display:flex;align-items:center;height:60px;gap:12px;position:sticky;top:0;z-index:200}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.lm{width:30px;height:30px;background:var(--orange);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:13px;color:white}
+.lt{font-family:var(--fh);font-weight:800;font-size:15px;color:var(--ink);letter-spacing:.04em}
+.nalbl{background:var(--off);color:var(--ink2);font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:5px;border:2px solid #E2E4E9}
+.nr{margin-left:auto;display:flex;gap:7px;align-items:center}
+.nb{font-size:11px;padding:6px 12px;border-radius:7px;border:2px solid var(--ink);background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;text-decoration:none;transition:all .15s}
+.nb:hover{background:var(--ink);color:white}
+.nb.gold{background:var(--orange);color:white;border-color:var(--orange)}.nb.gold:hover{background:#e54d00}
+.nb.danger{background:var(--rose);color:white;border-color:var(--rose)}.nb.danger:hover{background:#b91c1c}
+.page{padding:24px 28px;max-width:1320px;margin:0 auto}
+/* STATS */
+.s5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+.sc{border-radius:14px;padding:18px 20px;color:white;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.15)}
+.sv{font-family:var(--fh);font-size:28px;font-weight:800;position:relative;z-index:1}
+.sl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-top:3px;opacity:.85;position:relative;z-index:1}
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start}
+.lc{display:flex;flex-direction:column;gap:14px}
+/* PANEL */
+.panel{background:var(--white);border:2px solid var(--ink);border-radius:16px;padding:20px}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--off)}
+.pt{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px}
+.ptbar{width:4px;height:18px;background:var(--orange);border-radius:2px}
+.btn{font-size:11px;padding:6px 12px;border-radius:7px;border:2px solid var(--ink);background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;transition:all .15s}
+.btn:hover{background:var(--ink);color:white}
+.btn.sm-danger{border-color:var(--rose);color:var(--rose)}.btn.sm-danger:hover{background:var(--rose);color:white}
+/* ZONE FILTER */
+.zf{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.zfb{font-size:11px;padding:5px 14px;border-radius:20px;border:2px solid;cursor:pointer;font-family:var(--fh);font-weight:700;transition:all .15s;background:white}
+/* STOP ROWS */
+.ztit{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin:12px 0 6px;display:flex;align-items:center;gap:6px;font-family:var(--fh)}
+.srow{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:10px;margin-bottom:5px;background:var(--off);border:2px solid #E2E4E9;font-size:12px;transition:border-color .15s}
+.srow:hover{border-color:var(--ink)}
+.nb2{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;font-family:var(--fh);flex-shrink:0}
+.sb2{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;font-family:var(--fh);flex-shrink:0}
+.sbiz{font-weight:600;color:var(--ink)}
+.smeta{font-size:10px;color:var(--ink3);margin-top:1px}
+.rm{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:15px;padding:0 2px;transition:color .15s;margin-left:auto;font-weight:700}
+.rm:hover{color:var(--rose)}
+.empty{text-align:center;padding:36px 16px;color:var(--ink3);font-size:13px}
+.empty a{color:var(--orange);font-weight:700}
+/* MAP */
+#adminMap{height:360px;border-radius:12px;border:2px solid #E2E4E9;overflow:hidden}
+.leaflet-container{background:#e8f0f8!important}
+.leaflet-popup-content-wrapper{background:white!important;border:2px solid var(--ink)!important;color:var(--ink)!important;border-radius:10px!important;box-shadow:none!important}
+.leaflet-popup-tip{background:white!important}
+.leaflet-control-zoom a{background:white!important;color:var(--ink)!important;border:2px solid var(--ink)!important;font-weight:700!important}
+/* VEHICLES */
+.vcrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:2px solid var(--off);font-size:12px}
+.vcrow:last-child{border-bottom:none}
+.vcdot{width:10px;height:10px;border-radius:50%}
+/* DRIVER LINKS */
+.dcard{background:var(--off);border:2px solid #E2E4E9;border-radius:12px;padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px;text-decoration:none;transition:all .2s}
+.dcard:hover{border-color:var(--ink);background:white}
+.dav{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:16px;flex-shrink:0;color:white}
+.dname{font-family:var(--fh);font-size:12px;font-weight:800;color:var(--ink)}
+.dsub{font-size:10px;color:var(--ink3);margin-top:1px}
+.dcnt{margin-left:auto;font-family:var(--fh);font-size:16px;font-weight:800}
+.sharerow{display:flex;gap:6px;margin-top:6px;margin-bottom:12px}
+.sbtn{flex:1;font-size:10px;padding:6px 8px;border-radius:7px;font-family:var(--fh);font-weight:700;cursor:pointer;text-align:center;text-decoration:none;border:2px solid;transition:all .15s}
+.sbtn:hover{opacity:.85}
+@media(max-width:960px){.layout{grid-template-columns:1fr}.s5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.s5{grid-template-columns:1fr 1fr}nav{padding:0 14px}.page{padding:16px 14px}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
+  <span class="nalbl">Admin</span>
+  <div class="nr">
+    <a class="nb" href="register.html">+ Register Business</a>
+    <a class="nb" href="logic-engine.html">Logic Engine</a>
+    <button class="nb" onclick="refreshAll()">Refresh</button>
+    <button class="nb danger" onclick="if(confirm('Clear ALL data?')){savePickups([]);refreshAll()}">Clear All</button>
+  </div>
+</nav>
+<div class="page">
+  <div class="s5">
+    <div class="sc" style="background:var(--ink)"><div class="sv" id="st">0</div><div class="sl">Total Pickups</div></div>
+    <div class="sc" style="background:var(--violet)"><div class="sv" id="sn">0</div><div class="sl">North Zone</div></div>
+    <div class="sc" style="background:var(--sky)"><div class="sv" id="se">0</div><div class="sl">East Zone</div></div>
+    <div class="sc" style="background:var(--rose)"><div class="sv" id="ss">0</div><div class="sl">South Zone</div></div>
+    <div class="sc" style="background:var(--amber)"><div class="sv" id="sw">0</div><div class="sl">West Zone</div></div>
+  </div>
+  <div class="layout">
+    <div class="lc">
+      <div class="panel">
+        <div class="ph">
+          <div class="pt"><div class="ptbar"></div>All Registered Pickups</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn" onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+        <div class="zf" id="zf"></div>
+        <div id="pl"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="pt"><div class="ptbar"></div>City Overview Map</div></div>
+        <div id="adminMap"></div>
+        <div style="display:flex;gap:14px;margin-top:12px;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px;font-weight:600"><span style="width:12px;height:12px;border-radius:50%;background:var(--orange);display:inline-block"></span>City center</span>
+          <span style="font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px;font-weight:600"><span style="width:12px;height:12px;border-radius:50%;background:var(--violet);display:inline-block"></span>North</span>
+          <span style="font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px;font-weight:600"><span style="width:12px;height:12px;border-radius:50%;background:var(--sky);display:inline-block"></span>East</span>
+          <span style="font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px;font-weight:600"><span style="width:12px;height:12px;border-radius:50%;background:var(--rose);display:inline-block"></span>South</span>
+          <span style="font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px;font-weight:600"><span style="width:12px;height:12px;border-radius:50%;background:var(--amber);display:inline-block"></span>West</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph"><div class="pt"><div class="ptbar"></div>Vehicles per Zone</div><button class="btn" onclick="addVehicle()">+ Add</button></div>
+        <div id="vc"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="pt"><div class="ptbar"></div>Driver Pages</div></div>
+        <div id="dl"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+window.addEventListener('load', function(){
+
+const ZM=ZONE_META;
+const ZC={North:'#6C2BD9',East:'#0284C7',South:'#DC2626',West:'#D97706'};
+const DP={North:'driver-north.html',East:'driver-east.html',South:'driver-south.html',West:'driver-west.html'};
+let aMap=null,activeFilter='All';
+
+function renderStats(){
+  const all=loadPickups();
+  const n=all.filter(p=>p.zone==='North').length,e=all.filter(p=>p.zone==='East').length,s=all.filter(p=>p.zone==='South').length,w=all.filter(p=>p.zone==='West').length;
+  document.getElementById('st').textContent=n+e+s+w;
+  document.getElementById('sn').textContent=n;
+  document.getElementById('se').textContent=e;
+  document.getElementById('ss').textContent=s;
+  document.getElementById('sw').textContent=w;
+}
+function renderFilter(){
+  const zones=['All','North','East','South','West'];
+  const cols={All:['var(--ink)','var(--ink)'],North:['#6C2BD9','#6C2BD9'],East:['#0284C7','#0284C7'],South:['#DC2626','#DC2626'],West:['#D97706','#D97706']};
+  document.getElementById('zf').innerHTML=zones.map(z=>{
+    const active=activeFilter===z;
+    const c=cols[z][0];
+    return `<button class="zfb" onclick="setFilter('${z}')" style="color:${active?'white':c};background:${active?c:'white'};border-color:${c}">${z}</button>`;
+  }).join('');
+}
+function setFilter(z){activeFilter=z;renderFilter();renderPickupList();}
+function renderPickupList(){
+  const all=loadPickups();
+  const filtered=activeFilter==='All'?all:all.filter(p=>p.zone===activeFilter);
+  if(!filtered.length){document.getElementById('pl').innerHTML=`<div class="empty">No pickups registered yet.<br><a href="register.html">Register the first business →</a></div>`;return;}
+  const byZone={};filtered.forEach(p=>{if(!byZone[p.zone])byZone[p.zone]=[];byZone[p.zone].push(p);});
+  let h='';
+  ['North','East','South','West'].forEach(z=>{
+    if(!byZone[z])return;
+    const sorted=byZone[z].sort((a,b)=>a.dist-b.dist);
+    const c=ZC[z],m=ZM[z];
+    h+=`<div class="ztit" style="color:${c}"><div style="width:7px;height:7px;border-radius:50%;background:${c}"></div>${z} Zone — ${sorted.length} stop${sorted.length!==1?'s':''}</div>`;
+    sorted.forEach((p,i)=>{
+      const del=String.fromCharCode(65+sorted.length-1-i);
+      h+=`<div class="srow">
+        <div class="nb2" style="background:${c}">${i+1}</div>
+        <div style="flex:1;min-width:0"><div class="sbiz">${p.biz}</div><div class="smeta">${p.lat.toFixed(4)},${p.lng.toFixed(4)} · ${p.dist}m${p.phone?' · '+p.phone:''}</div></div>
+        <div class="sb2" style="background:${m.light};color:${c};border:2px solid ${c}">${del}</div>
+        <button class="rm" onclick="removeStop(${p.id})">✕</button>
+      </div>`;
+    });
+  });
+  document.getElementById('pl').innerHTML=h;
+}
+function removeStop(id){savePickups(loadPickups().filter(p=>p.id!==id));refreshAll();}
+function renderVehicles(){
+  const all=loadPickups();
+  let h='';
+  ['North','East','South','West'].forEach(z=>{
+    const c=ZC[z],m=ZM[z],cnt=all.filter(p=>p.zone===z).length;
+    h+=`<div class="vcrow">
+      <div class="vcdot" style="background:${c}"></div>
+      <span style="font-family:var(--fh);font-weight:800;font-size:12px;min-width:52px;color:${c}">${z}</span>
+      <span style="font-size:12px;color:var(--ink2);flex:1">${m.vehicles.join(', ')}</span>
+      <span style="font-size:11px;color:var(--ink3);font-weight:600">${cnt} stops</span>
+    </div>`;
+  });
+  document.getElementById('vc').innerHTML=h;
+}
+function addVehicle(){
+  const z=prompt('Zone (North/East/South/West):');
+  if(!z)return;
+  const zone=z.charAt(0).toUpperCase()+z.slice(1).toLowerCase();
+  if(!ZONE_META[zone]){alert('Invalid zone');return;}
+  const id=prompt(`Vehicle ID for ${zone}:`);
+  if(!id)return;
+  ZONE_META[zone].vehicles.push(id.trim());
+  renderVehicles();
+}
+function renderDriverLinks(){
+  const all=loadPickups();
+  let h='';
+  ['North','East','South','West'].forEach(z=>{
+    const c=ZC[z],m=ZM[z],cnt=all.filter(p=>p.zone===z).length,pg=DP[z];
+    const url=location.href.replace('admin.html',pg);
+    h+=`<a class="dcard" href="${pg}">
+      <div class="dav" style="background:${c}">${m.label}</div>
+      <div><div class="dname">${z} Zone Driver</div><div class="dsub">${m.vehicles[0]}</div></div>
+      <div class="dcnt" style="color:${c}">${cnt}</div>
+    </a>
+    <div class="sharerow">
+      <button class="sbtn" style="background:${c};color:white;border-color:${c}" onclick="copyLink('${zone}','${pg}')">Copy Driver Link</button>
+      <a class="sbtn" style="background:white;color:var(--ink);border-color:var(--ink)" href="${pg}" target="_blank">Open →</a>
+    </div>`;
+  });
+  document.getElementById('dl').innerHTML=h;
+}
+function copyLink(zone,pg){
+  const url=location.href.replace('admin.html',pg);
+  navigator.clipboard.writeText(url).then(()=>alert(`${zone} driver link copied!\n\n${url}`)).catch(()=>prompt('Copy this link:',url));
+}
+function initMap(){
+  aMap=L.map('adminMap').setView([CENTER.lat,CENTER.lng],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(aMap);
+  L.marker([CENTER.lat,CENTER.lng],{icon:L.divIcon({className:'',html:'<div style="width:14px;height:14px;border-radius:50%;background:#FF5C00;border:3px solid white;box-shadow:0 0 0 4px rgba(255,92,0,0.3)"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(aMap).bindPopup('<b style="color:#FF5C00">Ghanta Ghar — City Center</b>');
+  refreshMapMarkers();
+}
+function refreshMapMarkers(){
+  if(!aMap)return;
+  aMap.eachLayer(l=>{if(l instanceof L.CircleMarker||l instanceof L.Polyline)aMap.removeLayer(l);});
+  const all=loadPickups();
+  ['North','East','South','West'].forEach(z=>{
+    const zp=all.filter(p=>p.zone===z).sort((a,b)=>a.dist-b.dist);
+    const c=ZC[z];
+    if(zp.length>1)L.polyline([[CENTER.lat,CENTER.lng],...zp.map(p=>[p.lat,p.lng])],{color:c,weight:2,opacity:0.5,dashArray:'6 4'}).addTo(aMap);
+    zp.forEach((p,i)=>{L.circleMarker([p.lat,p.lng],{radius:8,fillColor:c,color:'white',weight:2,fillOpacity:0.9}).addTo(aMap).bindPopup(`<b style="color:${c};font-family:Syne">${p.biz}</b><br><span style="font-size:11px">Pickup #${i+1} · ${p.dist}m · ${z}</span>${p.phone?`<br><span style="font-size:11px">${p.phone}</span>`:''}`);});
+  });
+}
+function exportCSV(){
+  const all=loadPickups();
+  if(!all.length){alert('No data to export');return;}
+  const rows=[['Zone','Business','Owner','Phone','Category','Lat','Lng','Distance(m)','PickupOrder','DeliveryOrder']];
+  ['North','East','South','West'].forEach(z=>{
+    const zp=all.filter(p=>p.zone===z).sort((a,b)=>a.dist-b.dist);
+    zp.forEach((p,i)=>rows.push([z,p.biz,p.owner||'',p.phone||'',p.category||'',p.lat,p.lng,p.dist,i+1,String.fromCharCode(65+zp.length-1-i)]));
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='navadhar-pickups-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+function refreshAll(){renderStats();renderFilter();renderPickupList();renderVehicles();renderDriverLinks();refreshMapMarkers();}
+initMap();refreshAll();
+
+});
+</script>
+
+</body>
+</html>
