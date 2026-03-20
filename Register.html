@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Register Your Business — Navadhar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--white:#fff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;--orange:#FF5C00;--violet:#6C2BD9;--green:#16A34A;--fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif}
+html,body{min-height:100vh;background:var(--off);color:var(--ink);font-family:var(--fb)}
+nav{background:var(--white);border-bottom:2px solid var(--ink);padding:0 40px;display:flex;align-items:center;height:60px;gap:12px;position:sticky;top:0;z-index:200}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.lm{width:32px;height:32px;background:var(--orange);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:14px;color:white}
+.lt{font-family:var(--fh);font-weight:800;font-size:16px;color:var(--ink);letter-spacing:.04em}
+.bk{margin-left:auto;font-size:12px;color:var(--ink2);text-decoration:none;font-family:var(--fh);font-weight:600;border:2px solid var(--ink);padding:6px 14px;border-radius:7px;transition:all .15s}
+.bk:hover{background:var(--ink);color:white}
+.page{max-width:1020px;margin:0 auto;padding:36px 28px}
+.ph{margin-bottom:28px}
+.ey{font-size:11px;font-family:var(--fh);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.pt{font-family:var(--fh);font-size:32px;font-weight:800;color:var(--ink);margin-bottom:6px}
+.ps{font-size:13px;color:var(--ink3);line-height:1.7;max-width:500px}
+.layout{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start}
+/* FORM CARD */
+.fc{background:var(--white);border:2px solid var(--ink);border-radius:16px;padding:24px;position:sticky;top:72px}
+.ct{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--off);display:flex;align-items:center;gap:8px}
+.ctbar{width:4px;height:18px;background:var(--orange);border-radius:2px}
+label{font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px;font-family:var(--fh);font-weight:700}
+input,select{width:100%;background:var(--off);border:2px solid #E2E4E9;border-radius:8px;padding:10px 12px;font-size:13px;color:var(--ink);font-family:var(--fb);outline:none;transition:border .15s}
+input:focus,select:focus{border-color:var(--orange);background:white}
+input::placeholder{color:var(--ink3)}
+select option{background:white}
+.field{margin-bottom:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* GEO STATUS */
+.gs{border:2px dashed #E2E4E9;border-radius:10px;padding:12px 14px;margin:14px 0;display:flex;align-items:flex-start;gap:10px;transition:all .3s}
+.gs.pinned{border-color:var(--green);border-style:solid;background:#F0FDF4}
+.gpulse{width:10px;height:10px;border-radius:50%;background:var(--ink3);flex-shrink:0;margin-top:3px}
+.gpulse.live{background:var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.gt{color:var(--ink);font-family:var(--fh);font-weight:700;font-size:12px}
+.gsub{color:var(--ink3);font-size:11px;margin-top:3px}
+.zdet{display:inline-block;font-size:10px;padding:2px 8px;border-radius:5px;font-family:var(--fh);font-weight:700;margin-top:4px}
+/* BUTTONS */
+.btn{font-size:12px;padding:10px 16px;border-radius:8px;border:2px solid var(--ink);background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;letter-spacing:.02em;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-bottom:8px}
+.btn:hover{background:var(--off)}
+.btn.primary{background:var(--orange);color:white;border-color:var(--orange);font-size:13px;padding:12px}
+.btn.primary:hover{background:#e54d00}
+.btn.ghost{border-color:#E2E4E9;color:var(--ink2)}
+.btn.ghost:hover{border-color:var(--ink);color:var(--ink)}
+/* MAP */
+.mp{background:var(--white);border:2px solid var(--ink);border-radius:16px;overflow:hidden}
+.mh{padding:14px 18px;border-bottom:2px solid var(--off);display:flex;align-items:center;justify-content:space-between}
+.mht{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink)}
+.mhint{font-size:11px;color:white;background:var(--orange);border-radius:6px;padding:4px 10px;font-family:var(--fh);font-weight:700}
+#regMap{height:440px;width:100%}
+.mf{padding:10px 14px;border-top:2px solid var(--off);display:flex;gap:16px;font-size:11px;color:var(--ink3);background:var(--off)}
+.ml{display:flex;align-items:center;gap:5px;font-weight:600}
+.mld{width:10px;height:10px;border-radius:50%}
+/* MSG */
+.msg{font-size:12px;margin-top:10px;padding:8px 12px;border-radius:8px;display:none;line-height:1.5;font-weight:600}
+.msg.show{display:block}
+.msg.ok{background:#F0FDF4;color:var(--green);border:2px solid #86EFAC}
+.msg.err{background:#FEF2F2;color:var(--rose,#DC2626);border:2px solid #FCA5A5}
+/* REGISTERED LIST */
+.rl{background:var(--off);border:2px solid #E2E4E9;border-radius:12px;padding:14px;margin-top:14px}
+.rlt{font-family:var(--fh);font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink2);text-transform:uppercase;margin-bottom:10px}
+.rlr{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:white;border:2px solid #E2E4E9;margin-bottom:5px;font-size:12px}
+.rln{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;font-family:var(--fh);flex-shrink:0}
+/* SUCCESS */
+.sov{display:none;position:fixed;inset:0;background:rgba(10,10,20,0.85);z-index:500;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:28px}
+.sov.show{display:flex}
+.sbox{background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;border:3px solid var(--ink)}
+.sicon{width:64px;height:64px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:28px;color:white}
+.stl{font-family:var(--fh);font-size:24px;font-weight:800;color:var(--ink);margin-bottom:6px}
+.stsb{font-size:13px;color:var(--ink3);margin-bottom:14px}
+.szb{font-family:var(--fh);font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;display:inline-block;margin-bottom:22px;border:2px solid}
+.sa{display:flex;gap:10px;justify-content:center}
+.sbtn{padding:10px 20px;border-radius:8px;font-family:var(--fh);font-weight:700;font-size:13px;cursor:pointer;border:2px solid;transition:all .15s;text-decoration:none;display:inline-block}
+/* LEAFLET OVERRIDES */
+.leaflet-container{background:#f0f4f8!important}
+.leaflet-popup-content-wrapper{background:white!important;border:2px solid var(--ink)!important;color:var(--ink)!important;border-radius:10px!important;box-shadow:none!important;font-family:var(--fb)!important}
+.leaflet-popup-tip{background:white!important}
+.leaflet-control-zoom a{background:white!important;color:var(--ink)!important;border:2px solid var(--ink)!important;font-weight:700!important}
+.leaflet-control-attribution{background:rgba(255,255,255,.8)!important;color:var(--ink3)!important;font-size:9px!important}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.fc{position:static}#regMap{height:300px}nav{padding:0 16px}.page{padding:20px 16px}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
+  <a class="bk" href="index.html">← Home</a>
+</nav>
+<div class="page">
+  <div class="ph">
+    <div class="ey">Business Registration</div>
+    <h1 class="pt">Pin your shop on Jodhpur</h1>
+    <p class="ps">Tap your exact location on the map below. Navadhar auto-detects your delivery zone and adds you to the route instantly.</p>
+  </div>
+  <div class="layout">
+    <div class="fc">
+      <div class="ct"><div class="ctbar"></div>Business Details</div>
+      <div class="field"><label>Business / Shop Name</label><input id="biz" placeholder="e.g. Sharma Textiles" maxlength="60"/></div>
+      <div class="row2">
+        <div class="field"><label>Owner Name</label><input id="owner" placeholder="Ramesh Sharma" maxlength="40"/></div>
+        <div class="field"><label>Phone</label><input id="phone" placeholder="+91 98765 43210" maxlength="20"/></div>
+      </div>
+      <div class="field"><label>Business Category</label>
+        <select id="cat">
+          <option value="">Select category</option>
+          <option>Textiles &amp; Garments</option><option>Electronics</option>
+          <option>Groceries &amp; FMCG</option><option>Handicrafts &amp; Exports</option>
+          <option>Pharmaceuticals</option><option>Hardware &amp; Building</option>
+          <option>Food &amp; Beverages</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Location</label>
+        <button class="btn ghost" onclick="detectLocation()">📍 Detect My GPS Location</button>
+      </div>
+      <div class="gs" id="gs">
+        <div class="gpulse" id="gp"></div>
+        <div>
+          <div class="gt" id="gt">No location pinned yet</div>
+          <div class="gsub" id="gsub">Tap the map on the right to drop your pin</div>
+        </div>
+      </div>
+      <button class="btn primary" onclick="submitBusiness()">✓ Register My Business</button>
+      <div id="msg" class="msg"></div>
+      <div class="rl" id="rl" style="display:none">
+        <div class="rlt">Registered businesses</div>
+        <div id="rlItems"></div>
+      </div>
+    </div>
+    <div>
+      <div class="mp">
+        <div class="mh">
+          <span class="mht">Jodhpur City Map</span>
+          <span class="mhint">Tap anywhere to pin</span>
+        </div>
+        <div id="regMap"></div>
+        <div class="mf">
+          <div class="ml"><div class="mld" style="background:#FF5C00"></div>City Center (Ghanta Ghar)</div>
+          <div class="ml"><div class="mld" style="background:#16A34A"></div>Your pin (draggable)</div>
+          <div class="ml"><div class="mld" style="background:#6C2BD9"></div>Registered businesses</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="sov" id="sov">
+  <div class="sbox">
+    <div class="sicon">✓</div>
+    <div class="stl">You're registered!</div>
+    <div class="stsb" id="sbiz"></div>
+    <div class="szb" id="szone"></div>
+    <div class="sa">
+      <button class="sbtn" style="background:white;color:var(--ink);border-color:var(--ink)" onclick="document.getElementById('sov').classList.remove('show')">Register Another</button>
+      <a class="sbtn" style="background:var(--orange);color:white;border-color:var(--orange)" href="index.html">Back to Home</a>
+    </div>
+  </div>
+</div>
+<script src="_shared.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ZM=ZONE_META;
+let rLat=null,rLng=null,rMap=null,rMarker=null;
+function initMap(){
+  rMap=L.map('regMap').setView([CENTER.lat,CENTER.lng],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(rMap);
+  L.marker([CENTER.lat,CENTER.lng],{icon:L.divIcon({className:'',html:'<div style="width:16px;height:16px;border-radius:50%;background:#FF5C00;border:3px solid white;box-shadow:0 0 0 4px rgba(255,92,0,0.3)"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(rMap).bindPopup('<b style="font-family:Syne;color:#FF5C00">Ghanta Ghar — City Center</b>');
+  loadPickups().forEach(p=>{
+    const c=ZM[p.zone];if(!c)return;
+    L.circleMarker([p.lat,p.lng],{radius:6,fillColor:c.solid,color:'white',weight:2,fillOpacity:0.9}).addTo(rMap).bindPopup(`<b style="font-family:Syne;color:${c.solid}">${p.biz}</b><br><span style="font-size:11px">${p.zone} Zone · ${p.dist}m from center</span>`);
+  });
+  rMap.on('click',e=>setPin(e.latlng.lat,e.latlng.lng));
+}
+function setPin(lat,lng){
+  rLat=lat;rLng=lng;
+  if(rMarker)rMap.removeLayer(rMarker);
+  rMarker=L.marker([lat,lng],{draggable:true,icon:L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:#16A34A;border:3px solid white;box-shadow:0 2px 12px rgba(0,0,0,0.3)"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(rMap);
+  rMarker.on('dragend',ev=>{rLat=ev.target.getLatLng().lat;rLng=ev.target.getLatLng().lng;updateGS();});
+  updateGS();
+}
+function updateGS(){
+  if(!rLat)return;
+  const zone=getZone(rLat,rLng),dist=haversine(CENTER.lat,CENTER.lng,rLat,rLng),c=ZM[zone];
+  document.getElementById('gs').className='gs pinned';
+  document.getElementById('gp').className='gpulse live';
+  document.getElementById('gt').innerHTML=`${rLat.toFixed(5)}, ${rLng.toFixed(5)} <span class="zdet" style="background:${c.light};color:${c.text}">${zone} Zone</span>`;
+  document.getElementById('gsub').textContent=`${dist}m from city center · Drag the pin to fine-tune`;
+}
+function detectLocation(){
+  if(!navigator.geolocation){showMsg('GPS not supported on this device','err');return;}
+  showMsg('Detecting your location...','ok');
+  navigator.geolocation.getCurrentPosition(p=>{setPin(p.coords.latitude,p.coords.longitude);rMap.setView([p.coords.latitude,p.coords.longitude],16);showMsg('Location detected! Drag the pin to fine-tune.','ok');},()=>showMsg('Could not detect GPS. Please tap the map manually.','err'));
+}
+function submitBusiness(){
+  const biz=document.getElementById('biz').value.trim();
+  const owner=document.getElementById('owner').value.trim();
+  const phone=document.getElementById('phone').value.trim();
+  const cat=document.getElementById('cat').value;
+  if(!biz){showMsg('Please enter your business name','err');return;}
+  if(!rLat||!rLng){showMsg('Please tap the map to pin your location','err');return;}
+  const zone=getZone(rLat,rLng),dist=haversine(CENTER.lat,CENTER.lng,rLat,rLng);
+  const all=loadPickups();
+  all.push({id:Date.now(),biz,owner,phone,category:cat,lat:rLat,lng:rLng,zone,dist});
+  savePickups(all);
+  const c=ZM[zone];
+  document.getElementById('sbiz').textContent=`"${biz}" added to the Navadhar network`;
+  const zb=document.getElementById('szone');
+  zb.textContent=`${zone} Zone — ${dist}m from center`;
+  zb.style.background=c.light;zb.style.color=c.text;zb.style.borderColor=c.solid;
+  document.getElementById('sov').classList.add('show');
+  ['biz','owner','phone'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cat').value='';
+  if(rMarker){rMap.removeLayer(rMarker);rMarker=null;}
+  rLat=null;rLng=null;
+  document.getElementById('gs').className='gs';
+  document.getElementById('gp').className='gpulse';
+  document.getElementById('gt').textContent='No location pinned yet';
+  document.getElementById('gsub').textContent='Tap the map on the right to drop your pin';
+  renderList();
+}
+function renderList(){
+  const all=loadPickups();
+  if(!all.length){document.getElementById('rl').style.display='none';return;}
+  document.getElementById('rl').style.display='block';
+  let h='';
+  ['North','East','South','West'].forEach(z=>{
+    const zp=all.filter(p=>p.zone===z).sort((a,b)=>a.dist-b.dist);
+    if(!zp.length)return;
+    const c=ZM[z];
+    zp.forEach((p,i)=>{h+=`<div class="rlr"><div class="rln" style="background:${c.solid}">${i+1}</div><div style="flex:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.biz}</div><div style="font-size:10px;color:var(--ink3)">${z} · ${p.dist}m</div></div></div>`;});
+  });
+  document.getElementById('rlItems').innerHTML=h;
+}
+function showMsg(txt,type){const el=document.getElementById('msg');el.textContent=txt;el.className='msg show '+type;setTimeout(()=>el.classList.remove('show'),5000);}
+initMap();renderList();
+</script>
+</body>
+</html>
