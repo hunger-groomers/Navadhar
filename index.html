@@ -1,6 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+const CENTER={lat:26.2389,lng:73.0243};
+const ZONE_META={
+  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',vehicles:['VH-N01']},
+  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',vehicles:['VH-E01']},
+  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',vehicles:['VH-S01']},
+  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706',vehicles:['VH-W01']}
+};
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function getZone(lat,lng){
+  const dLat=lat-CENTER.lat,dLng=lng-CENTER.lng;
+  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
+}
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+function zonePickups(zone){return loadPickups().filter(p=>p.zone===zone).sort((a,b)=>a.dist-b.dist);}
+</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Navadhar — City Grid Delivery · Jodhpur</title>
@@ -99,11 +120,11 @@ footer a:hover{color:white}
 </head>
 <body>
 <nav>
-  <a class="logo" href="index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
+  <a class="logo" href="./index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
   <div class="nr">
-    <a class="nlink" href="logic-engine.html">Logic Engine</a>
-    <a class="nlink" href="admin.html">Admin</a>
-    <a class="nlink cta" href="register.html">Register Business →</a>
+    <a class="nlink" href="./logic-engine.html">Logic Engine</a>
+    
+    <a class="nlink" href="./driver-login.html">Driver Login</a><a class="nlink cta" href="./register.html">Register Business →</a>
   </div>
 </nav>
 
@@ -124,9 +145,9 @@ footer a:hover{color:white}
       <h1 class="ht">Smart Routes.<br><span>Every Zone.</span><br>Every Day.</h1>
       <p class="hd">Navadhar divides Jodhpur into 4 delivery zones. Businesses pin their geo-location once. Vehicles collect center-outward and deliver farthest-inward — pure flow logistics.</p>
       <div class="hbtns">
-        <a class="hbtn p" href="register.html">Register Your Business</a>
-        <a class="hbtn g" href="admin.html">Admin Dashboard</a>
-        <a class="hbtn g" href="logic-engine.html">Logic Engine</a>
+        <a class="hbtn p" href="./register.html">Register Your Business</a>
+        
+        <a class="hbtn g" href="./logic-engine.html">Logic Engine</a>
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:center" class="fu d2">
@@ -166,9 +187,9 @@ footer a:hover{color:white}
     <div class="stag">Get Started</div>
     <div class="stt">Three steps to delivery</div>
     <div class="sg">
-      <div class="sc"><div class="scn">Step 01 — Business</div><div class="sct">Register your shop location</div><div class="scd">Open the registration page, tap your exact location on the map, fill your details, and submit. Auto-assigned to a zone instantly.</div><a class="scl" href="register.html">Register now →</a></div>
-      <div class="sc"><div class="scn">Step 02 — Admin</div><div class="sct">Review &amp; manage all pickups</div><div class="scd">The admin dashboard shows all registered businesses sorted by zone and distance. Assign vehicles, export routes, manage daily ops.</div><a class="scl" href="admin.html">Open admin →</a></div>
-      <div class="sc"><div class="scn">Step 03 — Driver</div><div class="sct">Follow the live map route</div><div class="scd">Each driver gets their zone page with a live Jodhpur map, numbered pickup markers, lettered delivery markers, and one-tap navigation.</div><a class="scl" href="driver-north.html">View driver →</a></div>
+      <div class="sc"><div class="scn">Step 01 — Business</div><div class="sct">Register your shop location</div><div class="scd">Open the registration page, tap your exact location on the map, fill your details, and submit. Auto-assigned to a zone instantly.</div><a class="scl" href="./register.html">Register now →</a></div>
+      <div class="sc"><div class="scn">Step 02 — Admin</div><div class="sct">Review &amp; manage all pickups</div><div class="scd">The admin dashboard shows all registered businesses sorted by zone and distance. Assign vehicles, export routes, manage daily ops.</div><a class="scl" href="./admin.html">Open admin →</a></div>
+      <div class="sc"><div class="scn">Step 03 — Driver</div><div class="sct">Follow the live map route</div><div class="scd">Each driver gets their zone page with a live Jodhpur map, numbered pickup markers, lettered delivery markers, and one-tap navigation.</div><a class="scl" href="././driver-login.html">View driver →</a></div>
     </div>
   </div>
 </div>
@@ -176,15 +197,17 @@ footer a:hover{color:white}
 <footer>
   <span>© 2025 Navadhar · Jodhpur B2B City Grid Delivery</span>
   <div class="fdiv">
-    <a href="register.html">Register</a>
-    <a href="admin.html">Admin</a>
-    <a href="logic-engine.html">Logic Engine</a>
-    <a href="driver-north.html">Drivers</a>
+    <a href="./register.html">Register</a>
+    
+    <a href="./logic-engine.html">Logic Engine</a>
+    <a href="././driver-login.html">Drivers</a>
   </div>
 </footer>
 
-<script src="_shared.js"></script>
+
 <script>
+window.addEventListener('load', function(){
+
 function drawDiagram(){
   const c=document.getElementById('cc'),ctx=c.getContext('2d'),CX=170,CY=170,R=148;
   ctx.clearRect(0,0,340,340);
@@ -227,7 +250,7 @@ function renderStats(){
 }
 function renderZones(){
   const all=loadPickups();
-  const zd=[{z:'North',c:'#6C2BD9',pg:'driver-north.html'},{z:'East',c:'#0284C7',pg:'driver-east.html'},{z:'South',c:'#DC2626',pg:'driver-south.html'},{z:'West',c:'#D97706',pg:'driver-west.html'}];
+  const zd=[{z:'North',c:'#6C2BD9',pg:'./driver-login.html'},{z:'East',c:'#0284C7',pg:'./driver-login.html'},{z:'South',c:'#DC2626',pg:'./driver-login.html'},{z:'West',c:'#D97706',pg:'./driver-login.html'}];
   document.getElementById('zg').innerHTML=zd.map(({z,c,pg})=>{
     const m=ZONE_META[z],cnt=all.filter(p=>p.zone===z).length;
     return `<a class="zc" href="${pg}" style="background:${c}">
@@ -240,6 +263,9 @@ function renderZones(){
   }).join('');
 }
 renderStats();renderZones();drawDiagram();
+
+});
 </script>
+
 </body>
 </html>
