@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+const CENTER={lat:26.2389,lng:73.0243};
+const ZONE_META={
+  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',vehicles:['VH-N01']},
+  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',vehicles:['VH-E01']},
+  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',vehicles:['VH-S01']},
+  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706',vehicles:['VH-W01']}
+};
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function getZone(lat,lng){
+  const dLat=lat-CENTER.lat,dLng=lng-CENTER.lng;
+  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
+}
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+function zonePickups(zone){return loadPickups().filter(p=>p.zone===zone).sort((a,b)=>a.dist-b.dist);}
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>West Zone Driver — Navadhar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--white:#fff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;--zone:#D97706;--zone-light:rgba(217,119,6,0.1);--orange:#FF5C00;--fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif}
+html,body{min-height:100vh;background:var(--off);color:var(--ink);font-family:var(--fb)}
+nav{background:var(--white);border-bottom:2px solid var(--ink);padding:0 24px;display:flex;align-items:center;height:58px;gap:10px;position:sticky;top:0;z-index:200}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.lm{width:28px;height:28px;background:var(--orange);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:12px;color:white}
+.lt{font-family:var(--fh);font-weight:800;font-size:14px;color:var(--ink);letter-spacing:.04em}
+.zpill{font-size:11px;padding:4px 12px;border-radius:20px;background:var(--zone);color:white;font-family:var(--fh);font-weight:800;letter-spacing:.04em}
+.nr{margin-left:auto;display:flex;gap:6px;align-items:center}
+.nb{font-size:10px;padding:5px 11px;border-radius:6px;border:2px solid var(--ink);background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;text-decoration:none;transition:all .15s}
+.nb:hover{background:var(--ink);color:white}
+.nb.refresh{background:var(--zone);color:white;border-color:var(--zone)}
+.nb.refresh:hover{opacity:.85}
+.page{padding:20px 24px;max-width:940px;margin:0 auto}
+/* HERO */
+.hero{background:var(--zone);border-radius:20px;padding:28px;margin-bottom:20px;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden;color:white}
+.hero::before{content:'W';position:absolute;right:-10px;top:-24px;font-family:var(--fh);font-size:140px;font-weight:800;color:rgba(255,255,255,0.12);pointer-events:none;line-height:1}
+.vav{width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:26px;flex-shrink:0;color:white;border:2px solid rgba(255,255,255,0.4)}
+.vname{font-family:var(--fh);font-size:22px;font-weight:800;color:white}
+.vsub{font-size:12px;color:rgba(255,255,255,0.7);margin-top:3px}
+.vbadge{margin-left:auto;font-family:var(--fh);font-size:12px;font-weight:800;padding:7px 16px;border-radius:20px;background:rgba(255,255,255,0.2);color:white;border:2px solid rgba(255,255,255,0.4);z-index:1;white-space:nowrap}
+/* STATS */
+.s3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.sc{background:var(--white);border:2px solid var(--ink);border-radius:14px;padding:14px 16px}
+.sv{font-family:var(--fh);font-size:24px;font-weight:800;color:var(--zone)}
+.sl{font-size:10px;color:var(--ink3);margin-top:2px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+/* MAP */
+.mwrap{background:var(--white);border:2px solid var(--ink);border-radius:16px;overflow:hidden;margin-bottom:18px}
+.mhd{padding:14px 18px;border-bottom:2px solid var(--off);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.mht{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink)}
+.mleg{display:flex;gap:14px;font-size:10px;color:var(--ink3);font-weight:700;flex-wrap:wrap}
+.mli{display:flex;align-items:center;gap:4px}
+.mld{width:10px;height:10px;border-radius:50%}
+.mlsq{width:10px;height:10px;border-radius:3px}
+#driverMap{height:400px}
+.mfooter{padding:10px 14px;border-top:2px solid var(--off);display:flex;gap:8px;background:var(--off)}
+.mapbtn{flex:1;display:block;text-align:center;padding:11px;border-radius:10px;font-size:12px;font-weight:800;font-family:var(--fh);letter-spacing:.03em;text-decoration:none;color:white;background:var(--zone);transition:opacity .15s;border:2px solid var(--ink)}
+.mapbtn:hover{opacity:.85}
+.mapbtn.del{opacity:.8}
+/* ROUTES */
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.rc{background:var(--white);border:2px solid var(--ink);border-radius:14px;padding:16px}
+.rch{display:flex;align-items:center;gap:9px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--off)}
+.rci{width:32px;height:32px;border-radius:8px;background:var(--zone);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rct{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink)}
+.rcs{font-size:11px;color:var(--ink3)}
+.srow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;margin-bottom:4px;background:var(--off);border:2px solid #E2E4E9;font-size:11px;transition:border-color .15s}
+.srow:hover{border-color:var(--zone)}
+.nb3{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;background:var(--zone);font-family:var(--fh);flex-shrink:0}
+.sb3{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;font-family:var(--fh);flex-shrink:0;background:var(--zone-light);color:var(--zone);border:2px solid var(--zone)}
+.sbiz{font-weight:600;color:var(--ink)}
+.smeta{font-size:10px;color:var(--ink3);margin-top:1px}
+.rnote{font-size:11px;color:var(--ink3);padding:7px 9px;background:var(--off);border-radius:7px;margin-top:9px;border-left:3px solid var(--zone);font-weight:600}
+.empty{text-align:center;padding:36px 16px;color:var(--ink3);font-size:13px}
+.empty a{color:var(--zone);font-weight:700}
+/* SHARE */
+.spanel{background:var(--white);border:2px solid var(--ink);border-radius:14px;padding:16px;margin-bottom:16px}
+.sptit{font-family:var(--fh);font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink2);text-transform:uppercase;margin-bottom:10px}
+.sbox{background:var(--off);border:2px solid #E2E4E9;border-radius:9px;padding:10px 13px;display:flex;align-items:center;gap:9px}
+.surl{font-size:11px;color:var(--zone);font-family:monospace;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbtn{font-size:11px;padding:6px 12px;border-radius:7px;background:var(--zone);color:white;border:2px solid var(--zone);cursor:pointer;font-family:var(--fh);font-weight:800;white-space:nowrap;transition:opacity .15s}
+.cbtn:hover{opacity:.85}
+/* LEAFLET */
+.leaflet-container{background:#e8f0f8!important}
+.leaflet-popup-content-wrapper{background:white!important;border:2px solid var(--ink)!important;color:var(--ink)!important;border-radius:10px!important;box-shadow:none!important}
+.leaflet-popup-tip{background:white!important}
+.leaflet-control-zoom a{background:white!important;color:var(--ink)!important;border:2px solid var(--ink)!important;font-weight:700!important}
+.leaflet-control-attribution{background:rgba(255,255,255,.8)!important;color:var(--ink3)!important;font-size:9px!important}
+@keyframes fi{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fi .5s ease both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}
+@media(max-width:640px){.rgrid{grid-template-columns:1fr}.s3{grid-template-columns:repeat(3,1fr)}nav{padding:0 14px}.page{padding:16px 14px}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
+  <span class="zpill">West Zone</span>
+  <div class="nr">
+    <a class="nb" href="admin.html">Admin</a>
+    <a class="nb" href="index.html">Home</a>
+    <button class="nb refresh" onclick="buildPage()">Refresh Route</button>
+  </div>
+</nav>
+<div class="page">
+  <div class="hero fi">
+    <div class="vav">W</div>
+    <div>
+      <div class="vname">VH-W01</div>
+      <div class="vsub">Navadhar &middot; West Zone &middot; Jodhpur City Grid</div>
+    </div>
+    <div class="vbadge" id="stopBadge">0 Stops Today</div>
+  </div>
+  <div class="s3 fi d1">
+    <div class="sc"><div class="sv" id="s-stops">0</div><div class="sl">Total Stops</div></div>
+    <div class="sc"><div class="sv" id="s-close">&mdash;</div><div class="sl">Closest Stop</div></div>
+    <div class="sc"><div class="sv" id="s-far">&mdash;</div><div class="sl">Farthest Stop</div></div>
+  </div>
+  <div class="mwrap fi d2">
+    <div class="mhd">
+      <span class="mht">Live Route Map &mdash; West Zone</span>
+      <div class="mleg">
+        <div class="mli"><div class="mld" style="background:#D97706"></div>Pickup stops</div>
+        <div class="mli"><div class="mlsq" style="background:#D97706;opacity:.6"></div>Delivery stops</div>
+        <div class="mli"><div class="mld" style="background:#FF5C00"></div>City center</div>
+      </div>
+    </div>
+    <div id="driverMap"></div>
+    <div class="mfooter">
+      <a class="mapbtn" id="pickupBtn" href="#" target="_blank">Navigate Pickup Route</a>
+      <a class="mapbtn del" id="deliveryBtn" href="#" target="_blank">Navigate Delivery Route</a>
+    </div>
+  </div>
+  <div id="routeSection"></div>
+  <div class="spanel fi d3">
+    <div class="sptit">Share this driver page</div>
+    <div class="sbox">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><path d="M10 1h5v5M6 10L15 1M7 3H3a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-4" stroke="#D97706" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="surl" id="shareUrl">Loading...</div>
+      <button class="cbtn" onclick="copyLink()">Copy Link</button>
+    </div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:7px;font-weight:600">Send via WhatsApp &mdash; driver opens on phone to see today's route</div>
+  </div>
+</div>
+
+
+<script>
+window.addEventListener('load', function(){
+
+const ZONE='West';
+const ZCOLOR='#D97706';
+const ZLIGHT='rgba(217,119,6,0.1)';
+let dMap=null;
+function buildPage(){
+  const zp=zonePickups(ZONE);
+  const rev=[...zp].reverse();
+  document.getElementById('s-stops').textContent=zp.length;
+  document.getElementById('s-close').textContent=zp.length?zp[0].dist+'m':'—';
+  document.getElementById('s-far').textContent=zp.length?zp[zp.length-1].dist+'m':'—';
+  document.getElementById('stopBadge').textContent=zp.length+' Stop'+(zp.length!==1?'s':'')+' Today';
+  document.getElementById('shareUrl').textContent=window.location.href;
+  if(zp.length>0){
+    const wp=zp.map(p=>p.lat+','+p.lng).join('/');
+    document.getElementById('pickupBtn').href='https://www.google.com/maps/dir/'+CENTER.lat+','+CENTER.lng+'/'+wp;
+    const dw=rev.map(p=>p.lat+','+p.lng).join('/');
+    document.getElementById('deliveryBtn').href='https://www.google.com/maps/dir/'+dw+'/'+CENTER.lat+','+CENTER.lng;
+  }
+  if(!zp.length){
+    document.getElementById('routeSection').innerHTML='<div class="empty">No stops in West Zone yet.<br><a href="register.html">Register the first business &rarr;</a></div>';
+    initMap([],[]);
+    return;
+  }
+  let h='<div class="rgrid">';
+  h+='<div class="rc"><div class="rch"><div class="rci"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5" stroke="white" stroke-width="1.8"/><path d="M8 5v3l2 1" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div><div><div class="rct">Pickup Route</div><div class="rcs">Center &rarr; Farthest &middot; '+zp.length+' stops</div></div></div>';
+  zp.forEach((p,i)=>{h+='<div class="srow"><div class="nb3">'+(i+1)+'</div><div style="flex:1;min-width:0"><div class="sbiz">'+p.biz+'</div><div class="smeta">'+p.dist+'m from center'+(p.phone?' &middot; '+p.phone:'')+'</div></div></div>';});
+  h+='<div class="rnote">Start at Ghanta Ghar &mdash; collect pickups moving outward</div></div>';
+  h+='<div class="rc"><div class="rch"><div class="rci"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M9 3l5 5-5 5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="rct">Delivery Route</div><div class="rcs">Farthest &rarr; Center &middot; '+rev.length+' stops</div></div></div>';
+  rev.forEach((p,i)=>{const letter=String.fromCharCode(65+i);h+='<div class="srow"><div class="sb3">'+letter+'</div><div style="flex:1;min-width:0"><div class="sbiz">'+p.biz+'</div><div class="smeta">'+p.dist+'m'+(p.owner?' &middot; '+p.owner:'')+'</div></div></div>';});
+  h+='<div class="rnote">Start at '+rev[0].dist+'m &mdash; deliver back toward city center</div></div>';
+  h+='</div>';
+  document.getElementById('routeSection').innerHTML=h;
+  initMap(zp,rev);
+}
+function initMap(zp,rev){
+  if(dMap){dMap.remove();dMap=null;}
+  dMap=L.map('driverMap').setView([CENTER.lat,CENTER.lng],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap',maxZoom:19}).addTo(dMap);
+  L.marker([CENTER.lat,CENTER.lng],{icon:L.divIcon({className:'',html:'<div style="width:16px;height:16px;border-radius:50%;background:#FF5C00;border:3px solid white;box-shadow:0 0 0 5px rgba(255,92,0,0.25)"></div>',iconSize:[16,16],iconAnchor:[8,8]})}). addTo(dMap).bindPopup('<b style="color:#FF5C00;font-family:Syne">Ghanta Ghar &mdash; City Center</b>');
+  const bounds=[[CENTER.lat,CENTER.lng]];
+  if(zp.length>0)L.polyline([[CENTER.lat,CENTER.lng],...zp.map(p=>[p.lat,p.lng])],{color:ZCOLOR,weight:3,opacity:0.65,dashArray:'8 5'}).addTo(dMap);
+  if(rev.length>0)L.polyline([...rev.map(p=>[p.lat,p.lng]),[CENTER.lat,CENTER.lng]],{color:ZCOLOR,weight:2.5,opacity:0.4}).addTo(dMap);
+  zp.forEach((p,i)=>{
+    bounds.push([p.lat,p.lng]);
+    L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:'<div style="width:30px;height:30px;border-radius:50%;background:'+ZCOLOR+';border:3px solid white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;font-family:Syne,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,0.25)">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]})}). addTo(dMap).bindPopup('<div style="font-family:Syne;font-weight:800;color:'+ZCOLOR+';font-size:13px">Pickup #'+(i+1)+'</div><div style="font-size:12px;font-weight:600;margin-top:3px">'+p.biz+'</div>'+(p.phone?'<div style="font-size:11px;color:#8888A0">'+p.phone+'</div>':'')+'<div style="font-size:11px;color:#8888A0">'+p.dist+'m from center</div>');
+  });
+  rev.forEach((p,i)=>{
+    const letter=String.fromCharCode(65+i);
+    L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:'<div style="width:26px;height:26px;border-radius:7px;background:'+ZCOLOR+';opacity:0.85;border:3px solid white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;font-family:Syne,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.2)">'+letter+'</div>',iconSize:[26,26],iconAnchor:[13,13]})}). addTo(dMap).bindPopup('<div style="font-family:Syne;font-weight:800;color:'+ZCOLOR+';font-size:13px">Delivery '+letter+'</div><div style="font-size:12px;font-weight:600;margin-top:3px">'+p.biz+'</div>'+(p.owner?'<div style="font-size:11px;color:#8888A0">'+p.owner+'</div>':''));
+  });
+  if(bounds.length>1)dMap.fitBounds(bounds,{padding:[42,42]});
+}
+function copyLink(){
+  const url=window.location.href;
+  navigator.clipboard.writeText(url).then(()=>{const b=document.querySelector('.cbtn');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy Link',2500);}).catch(()=>prompt('Copy this link:',url));
+}
+buildPage();
+
+});
+</script>
+
+</body>
+</html>
