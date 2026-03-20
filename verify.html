@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Verify My Account — Navadhar</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#0A0A14;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
+.bg1{position:fixed;top:-80px;right:-80px;width:400px;height:400px;border-radius:50%;background:rgba(255,92,0,0.07);pointer-events:none}
+.bg2{position:fixed;bottom:-100px;left:-60px;width:360px;height:360px;border-radius:50%;background:rgba(22,163,74,0.06);pointer-events:none}
+
+.card{background:#fff;border:3px solid #0A0A14;border-radius:22px;padding:44px 40px;width:100%;max-width:440px;position:relative;z-index:1;text-align:center}
+
+.logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.lsq{width:40px;height:40px;background:#FF5C00;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:#fff}
+.lname{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#0A0A14;letter-spacing:.04em}
+
+/* STATES */
+.state{display:none}.state.active{display:block}
+
+/* LOADING */
+.spinner{width:48px;height:48px;border:4px solid #E2E4E9;border-top-color:#FF5C00;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#0A0A14;margin-bottom:6px}
+.loading-sub{font-size:13px;color:#8888A0;line-height:1.5}
+
+/* SUCCESS */
+.success-icon{width:72px;height:72px;border-radius:50%;background:#16A34A;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:30px;color:#fff;position:relative}
+.success-icon::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:3px solid rgba(22,163,74,0.25)}
+.success-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#0A0A14;margin-bottom:6px}
+.success-sub{font-size:13px;color:#8888A0;margin-bottom:22px;line-height:1.6}
+
+.biz-card{background:#F8F9FC;border:2px solid #E2E4E9;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left}
+.bc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E2E4E9;font-size:12px}
+.bc-row:last-child{border-bottom:none}
+.bc-label{color:#8888A0;font-family:'Syne',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.07em}
+.bc-val{font-family:'Syne',sans-serif;font-weight:800;color:#0A0A14;font-size:12px}
+.biz-id-big{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#FF5C00;display:block;text-align:center;margin:12px 0 4px}
+
+.action-btns{display:flex;gap:8px;flex-direction:column}
+.ab{display:block;width:100%;padding:13px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;text-decoration:none;text-align:center;transition:all .15s;border:2px solid;cursor:pointer}
+.ab.primary{background:#FF5C00;color:#fff;border-color:#FF5C00}
+.ab.primary:hover{background:#e54d00}
+.ab.secondary{background:#fff;color:#0A0A14;border-color:#0A0A14}
+.ab.secondary:hover{background:#0A0A14;color:#fff}
+
+/* ERROR */
+.error-icon{width:72px;height:72px;border-radius:50%;background:#FEF2F2;border:3px solid #FCA5A5;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:30px}
+.error-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#DC2626;margin-bottom:6px}
+.error-sub{font-size:13px;color:#8888A0;margin-bottom:20px;line-height:1.6}
+.error-btn{display:inline-block;padding:11px 24px;border-radius:9px;background:#FF5C00;color:#fff;border:2px solid #FF5C00;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;text-decoration:none;transition:all .15s}
+.error-btn:hover{background:#e54d00}
+
+/* ALREADY VERIFIED */
+.already-icon{width:72px;height:72px;border-radius:50%;background:#EFF6FF;border:3px solid #BFDBFE;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:30px}
+</style>
+</head>
+<body>
+<div class="bg1"></div>
+<div class="bg2"></div>
+
+<div class="card">
+  <div class="logo-row">
+    <div class="lsq">N</div>
+    <span class="lname">NAVADHAR</span>
+  </div>
+
+  <!-- LOADING -->
+  <div class="state active" id="st-loading">
+    <div class="spinner"></div>
+    <div class="loading-title">Verifying your account...</div>
+    <div class="loading-sub">Please wait while we confirm your business registration.</div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="state" id="st-success">
+    <div class="success-icon">✓</div>
+    <div class="success-title">Account Activated!</div>
+    <div class="success-sub">Your business is now verified and active on the Navadhar delivery network.</div>
+    <div class="biz-card">
+      <div style="text-align:center;margin-bottom:8px">
+        <div style="font-size:10px;font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#8888A0;margin-bottom:4px">Your Navadhar Business ID</div>
+        <span class="biz-id-big" id="suc-bizid">NVD-001</span>
+        <div id="suc-zone-tag" style="display:inline-block;font-size:11px;font-family:'Syne',sans-serif;font-weight:800;padding:3px 10px;border-radius:5px;border:1px solid;margin-top:2px"></div>
+      </div>
+      <div class="bc-row"><div class="bc-label">Business</div><div class="bc-val" id="suc-biz">—</div></div>
+      <div class="bc-row"><div class="bc-label">Owner</div><div class="bc-val" id="suc-owner">—</div></div>
+      <div class="bc-row"><div class="bc-label">Zone</div><div class="bc-val" id="suc-zone">—</div></div>
+      <div class="bc-row"><div class="bc-label">Distance from center</div><div class="bc-val" id="suc-dist">—</div></div>
+    </div>
+    <div class="action-btns">
+      <a class="ab primary" href="./scan.html" id="scan-link">📦 Submit Today's Goods</a>
+      <a class="ab secondary" href="./index.html">← Back to Home</a>
+    </div>
+  </div>
+
+  <!-- ALREADY VERIFIED -->
+  <div class="state" id="st-already">
+    <div class="already-icon">✅</div>
+    <div class="success-title" style="color:#0284C7">Already Verified!</div>
+    <div class="success-sub">This business is already verified on Navadhar. You can go directly to submit your goods.</div>
+    <div class="biz-card">
+      <div style="text-align:center;margin-bottom:8px">
+        <span class="biz-id-big" id="alr-bizid" style="color:#0284C7">NVD-001</span>
+      </div>
+      <div class="bc-row"><div class="bc-label">Business</div><div class="bc-val" id="alr-biz">—</div></div>
+      <div class="bc-row"><div class="bc-label">Zone</div><div class="bc-val" id="alr-zone">—</div></div>
+    </div>
+    <div class="action-btns">
+      <a class="ab primary" href="./scan.html" id="alr-scan-link">📦 Submit Today's Goods</a>
+      <a class="ab secondary" href="./index.html">← Back to Home</a>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="state" id="st-error">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title">Link Invalid or Expired</div>
+    <div class="error-sub">This verification link is invalid or has expired (links expire after 24 hours). Please register again to get a new link.</div>
+    <a class="error-btn" href="./register.html">Register Again →</a>
+  </div>
+</div>
+
+<script>
+var ZM={North:{solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9'},East:{solid:'#0284C7',light:'#E0F2FE',text:'#0284C7'},South:{solid:'#DC2626',light:'#FEE2E2',text:'#DC2626'},West:{solid:'#D97706',light:'#FEF3C7',text:'#D97706'}};
+
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+
+function showState(id){
+  document.querySelectorAll('.state').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+
+function verify(){
+  var params=new URLSearchParams(window.location.search);
+  var token=params.get('token');
+  var bizId=params.get('id');
+
+  if(!token&&!bizId){showState('st-error');return;}
+
+  // Load pending verifications
+  var pending=JSON.parse(localStorage.getItem('nvd_pending_verify')||'[]');
+
+  // Find by token or bizId
+  var entry=null;
+  if(token){
+    entry=pending.find(function(p){return p.token===token;});
+  }
+
+  // If no pending entry, check if already verified business
+  if(!entry&&bizId){
+    var all=loadPickups();
+    var biz=all.find(function(p){return p.bizId===bizId;});
+    if(biz&&biz.verified){
+      // Already verified — show already state
+      document.getElementById('alr-bizid').textContent=biz.bizId;
+      document.getElementById('alr-biz').textContent=biz.biz;
+      document.getElementById('alr-zone').textContent=biz.zone+' Zone';
+      document.getElementById('alr-scan-link').href='./scan.html?id='+biz.bizId;
+      showState('st-already');
+      return;
+    }
+  }
+
+  if(!entry){showState('st-error');return;}
+
+  // Check expiry (24 hours)
+  var now=Date.now();
+  var age=now-entry.createdAt;
+  if(age>24*60*60*1000){
+    // Expired — remove from pending
+    localStorage.setItem('nvd_pending_verify',JSON.stringify(pending.filter(function(p){return p.token!==token;})));
+    showState('st-error');
+    return;
+  }
+
+  // Valid — mark business as verified
+  var all=loadPickups();
+  var idx=all.findIndex(function(p){return p.bizId===entry.bizId;});
+  if(idx>=0){
+    all[idx].verified=true;
+    all[idx].verifiedAt=new Date().toISOString();
+    savePickups(all);
+  }
+
+  // Remove from pending
+  localStorage.setItem('nvd_pending_verify',JSON.stringify(pending.filter(function(p){return p.token!==token;})));
+
+  // Show success
+  var biz=all[idx]||entry;
+  var c=ZM[biz.zone]||{solid:'#888',light:'#eee',text:'#888'};
+  document.getElementById('suc-bizid').textContent=biz.bizId;
+  document.getElementById('suc-biz').textContent=biz.biz;
+  document.getElementById('suc-owner').textContent=biz.owner||'—';
+  document.getElementById('suc-zone').textContent=biz.zone+' Zone';
+  document.getElementById('suc-dist').textContent=biz.dist+'m';
+  var zt=document.getElementById('suc-zone-tag');
+  zt.textContent=biz.zone+' Zone';
+  zt.style.background=c.light;zt.style.color=c.text;zt.style.borderColor=c.solid;
+  document.getElementById('scan-link').href='./scan.html?id='+biz.bizId;
+  showState('st-success');
+}
+
+// Small delay for UX — looks like it's actually doing something
+setTimeout(verify, 1200);
+</script>
+</body>
+</html>
