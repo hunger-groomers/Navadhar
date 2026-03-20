@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Navadhar — City Grid Delivery · Jodhpur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --white:#ffffff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;
+  --orange:#FF5C00;--violet:#6C2BD9;--sky:#0284C7;--rose:#DC2626;--amber:#D97706;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
+}
+html,body{min-height:100vh;background:var(--white);color:var(--ink);font-family:var(--fb)}
+/* NAV */
+nav{background:var(--white);border-bottom:2px solid var(--ink);padding:0 40px;display:flex;align-items:center;height:64px;gap:16px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.lm{width:36px;height:36px;background:var(--orange);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:16px;color:white}
+.lt{font-family:var(--fh);font-weight:800;font-size:18px;color:var(--ink);letter-spacing:.04em}
+.nr{margin-left:auto;display:flex;gap:8px;align-items:center}
+.nlink{font-size:13px;padding:8px 16px;border-radius:8px;border:2px solid var(--ink);color:var(--ink);text-decoration:none;font-family:var(--fh);font-weight:600;transition:all .18s}
+.nlink:hover{background:var(--ink);color:white}
+.nlink.cta{background:var(--orange);color:white;border-color:var(--orange)}
+.nlink.cta:hover{background:#e54d00}
+/* HERO */
+.hero{background:var(--ink);color:white;padding:80px 40px 72px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:420px;height:420px;border-radius:50%;background:var(--orange);opacity:.12}
+.hero::after{content:'';position:absolute;bottom:-80px;left:20%;width:300px;height:300px;border-radius:50%;background:var(--violet);opacity:.15}
+.hero-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;position:relative;z-index:1}
+.he{font-size:11px;font-family:var(--fh);font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:16px}
+.ht{font-family:var(--fh);font-size:54px;font-weight:800;line-height:1.05;margin-bottom:20px;color:white}
+.ht span{color:var(--orange)}
+.hd{font-size:15px;color:rgba(255,255,255,0.65);line-height:1.75;margin-bottom:36px;max-width:440px}
+.hbtns{display:flex;gap:12px;flex-wrap:wrap}
+.hbtn{padding:14px 26px;border-radius:10px;font-family:var(--fh);font-weight:700;font-size:14px;text-decoration:none;transition:all .18s;border:2px solid transparent;letter-spacing:.02em}
+.hbtn.p{background:var(--orange);color:white;border-color:var(--orange)}.hbtn.p:hover{background:#e54d00}
+.hbtn.g{border:2px solid rgba(255,255,255,0.3);color:white}.hbtn.g:hover{background:rgba(255,255,255,0.1)}
+/* STATS BAR */
+.sbar{background:var(--orange);padding:18px 40px;display:flex;gap:48px;overflow-x:auto}
+.sbar-inner{max-width:1100px;margin:0 auto;display:flex;gap:48px;width:100%}
+.si{display:flex;align-items:baseline;gap:10px;flex-shrink:0}
+.sv{font-family:var(--fh);font-size:26px;font-weight:800;color:white}
+.sl{font-size:11px;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+/* SECTIONS */
+.wrap{max-width:1100px;margin:0 auto;padding:0 40px}
+.sec{padding:72px 0}
+.stag{font-size:11px;font-family:var(--fh);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:10px}
+.stt{font-family:var(--fh);font-size:34px;font-weight:800;color:var(--ink);margin-bottom:8px}
+.ssd{font-size:14px;color:var(--ink3);margin-bottom:40px;line-height:1.7;max-width:520px}
+/* FORMULA CARDS */
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}
+.fc{background:var(--white);border:2px solid var(--ink);border-radius:16px;padding:24px;transition:all .18s;cursor:default;position:relative}
+.fc:hover{background:var(--ink);color:white;transform:translateY(-4px)}
+.fc:hover .fcd{color:rgba(255,255,255,0.7)}
+.fc:hover .fcf{background:rgba(255,255,255,0.1);color:#fff}
+.fcn{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;transition:color .18s}
+.fc:hover .fcn{color:rgba(255,255,255,0.5)}
+.fct{font-family:var(--fh);font-size:15px;font-weight:700;color:var(--ink);margin-bottom:7px;transition:color .18s}
+.fc:hover .fct{color:white}
+.fcd{font-size:12px;color:var(--ink2);line-height:1.65;transition:color .18s}
+.fcf{margin-top:12px;background:var(--off);border-radius:7px;padding:8px 12px;font-size:11px;font-family:monospace;color:var(--orange);border-left:3px solid var(--orange);transition:all .18s}
+/* ZONE CARDS */
+.zg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:56px}
+.zc{border-radius:16px;padding:24px;border:2px solid transparent;text-decoration:none;display:block;transition:all .2s;position:relative;overflow:hidden}
+.zc:hover{transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,0.15)}
+.zc::before{content:'';position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.15)}
+.zav{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:22px;margin-bottom:14px;background:rgba(255,255,255,0.25);color:white;position:relative;z-index:1}
+.zn{font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:3px;color:white;position:relative;z-index:1}
+.zv{font-size:11px;margin-bottom:14px;color:rgba(255,255,255,0.75);position:relative;z-index:1}
+.zst{font-size:28px;font-weight:800;font-family:var(--fh);color:white;position:relative;z-index:1}
+.zsl{font-size:10px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;position:relative;z-index:1}
+/* STEPS */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:28px}
+.sc{background:var(--off);border:2px solid var(--ink);border-radius:16px;padding:28px;transition:all .18s}
+.sc:hover{background:var(--ink);color:white}
+.sc:hover .scn,.sc:hover .scd{color:rgba(255,255,255,0.6)}
+.sc:hover .sct{color:white}
+.sc:hover .scl{color:var(--orange)}
+.scn{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--orange);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+.sct{font-family:var(--fh);font-size:16px;font-weight:700;margin-bottom:8px;color:var(--ink);transition:color .18s}
+.scd{font-size:12px;color:var(--ink2);line-height:1.65;transition:color .18s}
+.scl{display:inline-block;margin-top:14px;font-size:12px;color:var(--orange);font-family:var(--fh);font-weight:700;text-decoration:none}
+/* CANVAS */
+.diagram-wrap{position:relative;width:340px;height:340px;margin:0 auto}
+/* FOOTER */
+footer{background:var(--ink);padding:32px 40px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:rgba(255,255,255,0.5)}
+footer a{color:rgba(255,255,255,0.5);text-decoration:none;transition:color .15s}
+footer a:hover{color:white}
+.fdiv{display:flex;gap:20px}
+/* ANIM */
+@keyframes fu{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fu .6s ease both}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}
+@media(max-width:900px){.hero-inner{grid-template-columns:1fr;gap:40px}.ht{font-size:38px}.fg{grid-template-columns:1fr 1fr}.zg{grid-template-columns:1fr 1fr}.sg{grid-template-columns:1fr}nav{padding:0 20px}.wrap{padding:0 20px}}
+@media(max-width:560px){.fg,.zg{grid-template-columns:1fr}.ht{font-size:30px}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
+  <div class="nr">
+    <a class="nlink" href="logic-engine.html">Logic Engine</a>
+    <a class="nlink" href="admin.html">Admin</a>
+    <a class="nlink cta" href="register.html">Register Business →</a>
+  </div>
+</nav>
+
+<div class="sbar">
+  <div class="sbar-inner">
+    <div class="si"><span class="sv" id="st">0</span><span class="sl">Total Pickups</span></div>
+    <div class="si"><span class="sv" id="sn">0</span><span class="sl">North</span></div>
+    <div class="si"><span class="sv" id="se">0</span><span class="sl">East</span></div>
+    <div class="si"><span class="sv" id="ss">0</span><span class="sl">South</span></div>
+    <div class="si"><span class="sv" id="sw">0</span><span class="sl">West</span></div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="fu">
+      <div class="he">Jodhpur · B2B City Grid Delivery</div>
+      <h1 class="ht">Smart Routes.<br><span>Every Zone.</span><br>Every Day.</h1>
+      <p class="hd">Navadhar divides Jodhpur into 4 delivery zones. Businesses pin their geo-location once. Vehicles collect center-outward and deliver farthest-inward — pure flow logistics.</p>
+      <div class="hbtns">
+        <a class="hbtn p" href="register.html">Register Your Business</a>
+        <a class="hbtn g" href="admin.html">Admin Dashboard</a>
+        <a class="hbtn g" href="logic-engine.html">Logic Engine</a>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center" class="fu d2">
+      <div class="diagram-wrap">
+        <canvas id="cc" width="340" height="340"></canvas>
+        <div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.6);font-family:var(--fh);font-weight:700">N</div>
+        <div style="position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.6);font-family:var(--fh);font-weight:700">S</div>
+        <div style="position:absolute;right:-16px;top:50%;transform:translateY(-50%);font-size:12px;color:rgba(255,255,255,0.6);font-family:var(--fh);font-weight:700">E</div>
+        <div style="position:absolute;left:-16px;top:50%;transform:translateY(-50%);font-size:12px;color:rgba(255,255,255,0.6);font-family:var(--fh);font-weight:700">W</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="sec fu d1">
+    <div class="stag">The System Formula</div>
+    <div class="stt">How the routing formula works</div>
+    <div class="ssd">Every pickup and delivery follows Haversine distance from Ghanta Ghar. No guesswork — pure geometry and flow logic.</div>
+    <div class="fg">
+      <div class="fc"><div class="fcn">01 — Zone Detection</div><div class="fct">Geographic Classification</div><div class="fcd">Every location classified into N/E/S/W by comparing absolute lat/lng delta from city center.</div><div class="fcf">|ΔLat| &gt; |ΔLng| → N or S</div></div>
+      <div class="fc"><div class="fcn">02 — Distance</div><div class="fct">Haversine Formula</div><div class="fcd">Great-circle distance in meters from each business to city center. Accounts for Earth's curvature.</div><div class="fcf">d = 2R · arctan(√a / √(1−a))</div></div>
+      <div class="fc"><div class="fcn">03 — Pickup Order</div><div class="fct">Center → Outward</div><div class="fcd">Stops sorted ascending by distance. Vehicle starts at center and collects outward — nearest first.</div><div class="fcf">Route: Center → d₁ → d₂ → dₙ</div></div>
+      <div class="fc"><div class="fcn">04 — Delivery Order</div><div class="fct">Outward → Inward</div><div class="fcd">Delivery is the exact reverse — start at farthest business and work back toward city center.</div><div class="fcf">Route: dₙ → d₂ → d₁ → Center</div></div>
+      <div class="fc"><div class="fcn">05 — Zone Isolation</div><div class="fct">No Cross-Zone Routes</div><div class="fcd">Each zone operates independently. North vehicle handles only North stops. No cross-zone zig-zag allowed.</div><div class="fcf">∀ stop ∈ Zone Z → vehicles[Z]</div></div>
+      <div class="fc"><div class="fcn">06 — Geo-Tag</div><div class="fct">Tap-to-Register</div><div class="fcd">Businesses tap their exact location on a live map. GPS coordinates auto-assign to the correct zone.</div><div class="fcf">zone = f(lat, lng, CENTER)</div></div>
+    </div>
+  </div>
+
+  <div class="sec fu d2" style="padding-top:0">
+    <div class="stag">Active Zones</div>
+    <div class="stt">Four zones. Four vehicles. One city.</div>
+    <div class="zg" id="zg"></div>
+  </div>
+
+  <div class="sec fu d3" style="padding-top:0">
+    <div class="stag">Get Started</div>
+    <div class="stt">Three steps to delivery</div>
+    <div class="sg">
+      <div class="sc"><div class="scn">Step 01 — Business</div><div class="sct">Register your shop location</div><div class="scd">Open the registration page, tap your exact location on the map, fill your details, and submit. Auto-assigned to a zone instantly.</div><a class="scl" href="register.html">Register now →</a></div>
+      <div class="sc"><div class="scn">Step 02 — Admin</div><div class="sct">Review &amp; manage all pickups</div><div class="scd">The admin dashboard shows all registered businesses sorted by zone and distance. Assign vehicles, export routes, manage daily ops.</div><a class="scl" href="admin.html">Open admin →</a></div>
+      <div class="sc"><div class="scn">Step 03 — Driver</div><div class="sct">Follow the live map route</div><div class="scd">Each driver gets their zone page with a live Jodhpur map, numbered pickup markers, lettered delivery markers, and one-tap navigation.</div><a class="scl" href="driver-north.html">View driver →</a></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>© 2025 Navadhar · Jodhpur B2B City Grid Delivery</span>
+  <div class="fdiv">
+    <a href="register.html">Register</a>
+    <a href="admin.html">Admin</a>
+    <a href="logic-engine.html">Logic Engine</a>
+    <a href="driver-north.html">Drivers</a>
+  </div>
+</footer>
+
+<script src="_shared.js"></script>
+<script>
+function drawDiagram(){
+  const c=document.getElementById('cc'),ctx=c.getContext('2d'),CX=170,CY=170,R=148;
+  ctx.clearRect(0,0,340,340);
+  const zc=[{c:'rgba(108,43,217,0.5)'},{c:'rgba(2,132,199,0.5)'},{c:'rgba(220,38,38,0.5)'},{c:'rgba(217,119,6,0.5)'}];
+  const pts={N:[CX,CY-R],NE:[CX+R*.707,CY-R*.707],E:[CX+R,CY],SE:[CX+R*.707,CY+R*.707],S:[CX,CY+R],SW:[CX-R*.707,CY+R*.707],W:[CX-R,CY],NW:[CX-R*.707,CY-R*.707]};
+  const wedges=[['NW','N','NE',0],['NE','E','SE',1],['SE','S','SW',2],['SW','W','NW',3]];
+  ctx.save();ctx.beginPath();ctx.arc(CX,CY,R,0,Math.PI*2);ctx.clip();
+  wedges.forEach(([a,b,d,i])=>{ctx.beginPath();ctx.moveTo(CX,CY);ctx.lineTo(pts[a][0],pts[a][1]);ctx.lineTo(pts[b][0],pts[b][1]);ctx.lineTo(pts[d][0],pts[d][1]);ctx.closePath();ctx.fillStyle=zc[i].c;ctx.fill();});
+  ctx.restore();
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(CX,CY,R,0,Math.PI*2);ctx.stroke();
+  [[CX,CY-R,CX,CY+R],[CX-R,CY,CX+R,CY]].forEach(l=>{ctx.beginPath();ctx.moveTo(l[0],l[1]);ctx.lineTo(l[2],l[3]);ctx.stroke();});
+  ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(255,255,255,0.15)';
+  [[pts.NW[0],pts.NW[1],pts.SE[0],pts.SE[1]],[pts.NE[0],pts.NE[1],pts.SW[0],pts.SW[1]]].forEach(l=>{ctx.beginPath();ctx.moveTo(l[0],l[1]);ctx.lineTo(l[2],l[3]);ctx.stroke();});
+  ctx.setLineDash([]);
+  const lbcols=['#C4B5FD','#7DD3FC','#FCA5A5','#FDE68A'];
+  const lbpos=[{t:'N',x:CX,y:CY-95},{t:'E',x:CX+95,y:CY},{t:'S',x:CX,y:CY+95},{t:'W',x:CX-95,y:CY}];
+  ctx.font='700 12px Syne,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  lbpos.forEach((l,i)=>{ctx.fillStyle=lbcols[i];ctx.fillText(l.t,l.x,l.y);});
+  ctx.beginPath();ctx.arc(CX,CY,7,0,Math.PI*2);ctx.fillStyle='#FF5C00';ctx.fill();
+  ctx.beginPath();ctx.arc(CX,CY,14,0,Math.PI*2);ctx.strokeStyle='rgba(255,92,0,0.3)';ctx.lineWidth=3;ctx.stroke();
+  const all=loadPickups();
+  all.forEach(p=>{
+    const dLat=p.lat-CENTER.lat,dLng=p.lng-CENTER.lng;
+    const px=CX+(dLng/0.13)*R*.85,py=CY-(dLat/0.13)*R*.85;
+    if(px>5&&px<335&&py>5&&py<335){
+      ctx.beginPath();ctx.arc(px,py,5,0,Math.PI*2);
+      ctx.fillStyle=ZONE_META[p.zone]?.solid||'#fff';ctx.fill();
+      ctx.strokeStyle='white';ctx.lineWidth=1.5;ctx.stroke();
+    }
+  });
+}
+function renderStats(){
+  const all=loadPickups();
+  const n=all.filter(p=>p.zone==='North').length,e=all.filter(p=>p.zone==='East').length,s=all.filter(p=>p.zone==='South').length,w=all.filter(p=>p.zone==='West').length;
+  document.getElementById('st').textContent=n+e+s+w;
+  document.getElementById('sn').textContent=n;
+  document.getElementById('se').textContent=e;
+  document.getElementById('ss').textContent=s;
+  document.getElementById('sw').textContent=w;
+}
+function renderZones(){
+  const all=loadPickups();
+  const zd=[{z:'North',c:'#6C2BD9',pg:'driver-north.html'},{z:'East',c:'#0284C7',pg:'driver-east.html'},{z:'South',c:'#DC2626',pg:'driver-south.html'},{z:'West',c:'#D97706',pg:'driver-west.html'}];
+  document.getElementById('zg').innerHTML=zd.map(({z,c,pg})=>{
+    const m=ZONE_META[z],cnt=all.filter(p=>p.zone===z).length;
+    return `<a class="zc" href="${pg}" style="background:${c}">
+      <div class="zav">${m.label}</div>
+      <div class="zn">${z} Zone</div>
+      <div class="zv">${m.vehicles[0]}</div>
+      <div class="zst">${cnt}</div>
+      <div class="zsl">stops today</div>
+    </a>`;
+  }).join('');
+}
+renderStats();renderZones();drawDiagram();
+</script>
+</body>
+</html>
