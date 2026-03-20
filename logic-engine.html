@@ -1,1129 +1,702 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+const CENTER={lat:26.2389,lng:73.0243};
+const ZONE_META={
+  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',vehicles:['VH-N01']},
+  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',vehicles:['VH-E01']},
+  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',vehicles:['VH-S01']},
+  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706',vehicles:['VH-W01']}
+};
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function getZone(lat,lng){
+  const dLat=lat-CENTER.lat,dLng=lng-CENTER.lng;
+  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
+}
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+function zonePickups(zone){return loadPickups().filter(p=>p.zone===zone).sort((a,b)=>a.dist-b.dist);}
+</script>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Logic Engine — Navadhar System Brain</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
-/* ═══════════════════════════════════════
-   NAVADHAR LOGIC ENGINE — DESIGN SYSTEM
-   Aesthetic: Industrial control room meets
-   startup whiteboard. Dark base, amber/gold
-   accents, monospace data, clean geometry.
-═══════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#080f1a;--bg2:#0d1825;--bg3:#111f30;--bg4:#162638;--bg5:#1c2f44;
-  --gold:#F5A623;--gold2:#e8951a;--gold3:rgba(245,166,35,0.12);--gold4:rgba(245,166,35,0.06);
-  --green:#22c55e;--green2:rgba(34,197,94,0.12);
-  --red:#ef4444;--red2:rgba(239,68,68,0.12);
-  --amber:#f59e0b;--amber2:rgba(245,158,11,0.12);
-  --blue:#3b82f6;--blue2:rgba(59,130,246,0.12);
-  --cyan:#06b6d4;--cyan2:rgba(6,182,212,0.12);
-  --text:#c8d8e8;--text2:#7a9ab8;--text3:#3d5a73;
-  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.1);
-  --font-h:'Space Grotesk',sans-serif;
-  --font-b:'Space Grotesk',sans-serif;
-  --font-m:'JetBrains Mono',monospace;
-  --font-s:'Fraunces',serif;
-  --r:10px;--r2:14px;
-}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;line-height:1.6;overflow-x:hidden}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
-
-/* ── GRID NOISE TEXTURE ── */
-body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle at 20% 20%,rgba(245,166,35,0.04) 0%,transparent 50%),radial-gradient(circle at 80% 80%,rgba(6,182,212,0.03) 0%,transparent 50%);pointer-events:none;z-index:0}
-
-/* ══ NAV ══ */
-.topnav{position:sticky;top:0;z-index:100;background:rgba(8,15,26,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:52px;display:flex;align-items:center;padding:0 24px;gap:12px}
-.logo-wrap{display:flex;align-items:center;gap:8px;text-decoration:none}
-.logo-sq{width:28px;height:28px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-weight:700;font-size:13px;color:var(--bg);flex-shrink:0}
-.logo-name{font-family:var(--font-h);font-weight:700;font-size:14px;color:var(--text);letter-spacing:.06em}
-.nav-sep{width:1px;height:16px;background:var(--border2);margin:0 4px}
-.nav-label{font-family:var(--font-m);font-size:10px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
-.nav-right{margin-left:auto;display:flex;gap:6px;align-items:center}
-.nav-btn{font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font-h);font-weight:500;text-decoration:none;transition:all .15s;letter-spacing:.02em}
-.nav-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.2)}
-.nav-btn.gold{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:600}
-.nav-btn.gold:hover{background:var(--gold2)}
-
-/* ══ LAYOUT ══ */
-.wrap{max-width:1280px;margin:0 auto;padding:0 24px}
-.page-hero{padding:40px 0 32px;border-bottom:1px solid var(--border);margin-bottom:36px}
-.eyebrow{font-family:var(--font-m);font-size:10px;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;font-weight:600}
-.page-title{font-family:var(--font-s);font-size:42px;font-weight:700;color:var(--text);line-height:1.1;margin-bottom:10px}
-.page-title em{font-style:italic;color:var(--gold)}
-.page-sub{font-size:13px;color:var(--text2);max-width:600px;line-height:1.7}
-.equation-bar{display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap}
-.eq-chip{font-family:var(--font-m);font-size:11px;padding:5px 14px;border-radius:20px;border:1px solid;font-weight:500;letter-spacing:.04em}
-
-/* ══ SECTION HEADERS ══ */
-.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:20px}
-.sec-num{font-family:var(--font-m);font-size:10px;color:var(--gold);letter-spacing:.06em;font-weight:600;background:var(--gold3);border:1px solid rgba(245,166,35,0.2);padding:3px 8px;border-radius:4px}
-.sec-title{font-family:var(--font-h);font-size:15px;font-weight:600;color:var(--text);letter-spacing:.01em}
-.sec-line{flex:1;height:1px;background:var(--border)}
-
-/* ══ CONTENT GRID ══ */
-.content-grid{display:grid;gap:28px;margin-bottom:36px}
-.grid2{grid-template-columns:1fr 1fr}
-.grid3{grid-template-columns:1fr 1fr 1fr}
-.grid4{grid-template-columns:repeat(4,1fr)}
-
-/* ══ CARDS ══ */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
-.card:hover{border-color:var(--border2)}
-.card.gold-accent{border-top:2px solid var(--gold)}
-.card.green-accent{border-top:2px solid var(--green)}
-.card.red-accent{border-top:2px solid var(--red)}
-.card.cyan-accent{border-top:2px solid var(--cyan)}
-.card-title{font-family:var(--font-h);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:7px}
-.card-title-dot{width:5px;height:5px;border-radius:50%}
-
-/* ══ CODE BLOCKS ══ */
-.code-block{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:var(--font-m);font-size:12px;color:var(--text);line-height:1.8;margin:10px 0;position:relative;overflow:hidden}
-.code-block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--gold)}
-.code-line{display:block}
-.code-key{color:var(--gold);font-weight:600}
-.code-op{color:var(--cyan)}
-.code-val{color:var(--green)}
-.code-comment{color:var(--text3);font-style:italic}
-.code-cond{color:var(--amber)}
-.code-result{color:var(--text)}
-
-/* ══ FORMULA DISPLAY ══ */
-.formula{background:var(--bg3);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:12px 16px;font-family:var(--font-m);font-size:13px;color:var(--gold);text-align:center;margin:10px 0;letter-spacing:.02em}
-.formula-label{font-size:10px;color:var(--text2);text-align:center;margin-top:4px;font-family:var(--font-h);letter-spacing:.04em}
-
-/* ══ LIVE CALCULATOR ══ */
-.calc-wrap{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:16px;margin-top:14px}
-.calc-title{font-family:var(--font-m);font-size:10px;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;font-weight:600}
-.calc-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.calc-label{font-size:11px;color:var(--text2);min-width:100px;font-family:var(--font-h)}
-.calc-input{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text);font-family:var(--font-m);outline:none;transition:border .15s;width:100px}
-.calc-input:focus{border-color:rgba(245,166,35,0.4);background:var(--bg5)}
-.calc-unit{font-size:10px;color:var(--text3);font-family:var(--font-m)}
-.calc-result{margin-top:12px;padding:10px 14px;border-radius:7px;font-family:var(--font-m);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
-.calc-result.safe{background:var(--green2);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
-.calc-result.warn{background:var(--amber2);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
-.calc-result.danger{background:var(--red2);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
-.calc-result.info{background:var(--blue2);color:var(--blue);border:1px solid rgba(59,130,246,0.2)}
-.result-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-
-/* ══ VARIABLE EDITOR ══ */
-.var-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.var-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px}
-.var-name{font-family:var(--font-m);font-size:10px;color:var(--gold);font-weight:600;letter-spacing:.06em;margin-bottom:6px}
-.var-desc{font-size:10px;color:var(--text2);margin-bottom:8px;font-family:var(--font-h)}
-.var-input{width:100%;background:var(--bg4);border:1px solid var(--border2);border-radius:5px;padding:6px 8px;font-size:12px;color:var(--text);font-family:var(--font-m);outline:none;transition:border .15s}
-.var-input:focus{border-color:rgba(245,166,35,0.4)}
-.var-unit{font-size:9px;color:var(--text3);margin-top:3px;font-family:var(--font-m)}
-
-/* ══ VEHICLE CARDS ══ */
-.vehicle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.v-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px;transition:border-color .2s}
-.v-card:hover{border-color:var(--border2)}
-.v-icon{font-size:28px;margin-bottom:10px}
-.v-name{font-family:var(--font-h);font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
-.v-cap{font-family:var(--font-m);font-size:20px;font-weight:600;color:var(--gold);margin-bottom:10px}
-.v-bar-wrap{height:4px;background:var(--bg4);border-radius:2px;margin-bottom:6px;overflow:hidden}
-.v-bar{height:100%;background:var(--gold);border-radius:2px;transition:width .5s}
-.v-stat{font-size:10px;color:var(--text2);display:flex;justify-content:space-between;font-family:var(--font-m)}
-.v-safe{color:var(--green);font-weight:600}
-
-/* ══ ZONE STATUS ══ */
-.zone-status{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.zs-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);font-size:12px}
-.zs-label{font-family:var(--font-m);font-weight:600;min-width:80px}
-.zs-bar-wrap{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
-.zs-bar{height:100%;border-radius:3px;transition:width .5s}
-.zs-pct{font-family:var(--font-m);font-size:11px;min-width:36px;text-align:right}
-.zs-status{font-size:10px;padding:2px 8px;border-radius:4px;font-family:var(--font-m);font-weight:600;white-space:nowrap}
-
-/* ══ DECISION TREE ══ */
-.decision-tree{display:flex;flex-direction:column;gap:0}
-.dt-node{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);margin-bottom:6px;position:relative}
-.dt-node::before{content:'';position:absolute;left:28px;bottom:-6px;width:1px;height:6px;background:var(--border2)}
-.dt-node:last-child::before{display:none}
-.dt-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-m);flex-shrink:0}
-.dt-content{flex:1}
-.dt-cond{font-family:var(--font-m);font-size:11px;color:var(--cyan);font-weight:600;margin-bottom:3px}
-.dt-action{font-size:11px;color:var(--text2);font-family:var(--font-h)}
-.dt-result{font-family:var(--font-m);font-size:10px;padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;font-weight:600}
-
-/* ══ SYSTEM LOOP ══ */
-.loop-steps{display:flex;flex-direction:column;gap:0;margin-top:10px}
-.loop-step{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:4px;position:relative}
-.ls-num{width:24px;height:24px;border-radius:50%;background:var(--gold3);border:1px solid rgba(245,166,35,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-size:10px;color:var(--gold);font-weight:700;flex-shrink:0}
-.ls-arrow{position:absolute;left:23px;bottom:-4px;font-size:8px;color:var(--gold);z-index:1}
-.loop-step:last-child .ls-arrow{display:none}
-.ls-text{font-family:var(--font-h);font-size:12px;color:var(--text);font-weight:500}
-.ls-sub{font-family:var(--font-m);font-size:10px;color:var(--text3);margin-top:1px}
-
-/* ══ NOTIFICATION TIMELINE ══ */
-.notif-timeline{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.nt-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3)}
-.nt-time{font-family:var(--font-m);font-size:11px;font-weight:600;min-width:54px;color:var(--gold)}
-.nt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.nt-text{font-size:12px;color:var(--text);font-family:var(--font-h);flex:1}
-.nt-type{font-size:9px;padding:2px 7px;border-radius:4px;font-family:var(--font-m);font-weight:600}
-
-/* ══ PRICING ══ */
-.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
-.price-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
-.price-type{font-family:var(--font-m);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
-.price-formula{font-family:var(--font-m);font-size:12px;color:var(--text);margin-bottom:6px;line-height:1.5}
-.price-discount{font-family:var(--font-h);font-size:18px;font-weight:700;margin-top:4px}
-
-/* ══ GOLDEN RULES ══ */
-.rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.rule-card{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px}
-.rule-num{font-family:var(--font-m);font-size:18px;font-weight:700;color:var(--gold3);line-height:1;flex-shrink:0;min-width:24px}
-.rule-text{font-size:12px;color:var(--text2);font-family:var(--font-h);line-height:1.5}
-.rule-text strong{color:var(--text);font-weight:600;display:block;margin-bottom:2px;font-size:12px}
-
-/* ══ FINAL EQUATION ══ */
-.final-eq{background:var(--bg2);border:1px solid rgba(245,166,35,0.25);border-radius:16px;padding:32px;text-align:center;margin:32px 0;position:relative;overflow:hidden}
-.final-eq::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(245,166,35,0.04) 0%,transparent 60%);pointer-events:none}
-.feq-label{font-family:var(--font-m);font-size:10px;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;font-weight:600}
-.feq-main{font-family:var(--font-s);font-size:28px;color:var(--text);margin-bottom:8px;line-height:1.3}
-.feq-main em{color:var(--gold);font-style:italic}
-.feq-sub{font-family:var(--font-m);font-size:13px;color:var(--text2);margin-top:12px}
-.feq-vars{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px}
-.feq-var{font-family:var(--font-m);font-size:11px;padding:4px 12px;border-radius:5px;border:1px solid rgba(245,166,35,0.2);background:var(--gold3);color:var(--gold);font-weight:500}
-
-/* ══ TAGS / BADGES ══ */
-.badge{font-size:9px;padding:2px 7px;border-radius:4px;font-family:var(--font-m);font-weight:600;letter-spacing:.04em;display:inline-block}
-.badge-gold{background:var(--gold3);color:var(--gold);border:1px solid rgba(245,166,35,0.2)}
-.badge-green{background:var(--green2);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
-.badge-red{background:var(--red2);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
-.badge-cyan{background:var(--cyan2);color:var(--cyan);border:1px solid rgba(6,182,212,0.2)}
-.badge-amber{background:var(--amber2);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
-
-/* ══ SAVE BAR ══ */
-.save-bar{position:sticky;bottom:0;background:rgba(8,15,26,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:50}
-.save-status{font-family:var(--font-m);font-size:11px;color:var(--text2);flex:1}
-.save-status.saved{color:var(--green)}
-.save-status.unsaved{color:var(--amber)}
-.save-btn{font-size:12px;padding:8px 20px;border-radius:7px;border:none;background:var(--gold);color:var(--bg);cursor:pointer;font-family:var(--font-h);font-weight:600;letter-spacing:.02em;transition:all .15s}
-.save-btn:hover{background:var(--gold2)}
-.reset-btn{font-size:11px;padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font-h);font-weight:500;transition:all .15s}
-.reset-btn:hover{color:var(--text)}
-
-/* ══ SECTION SPACING ══ */
-section{margin-bottom:44px;position:relative;z-index:1}
-
-/* ══ HORIZONTAL DIVIDER ══ */
-.hdiv{height:1px;background:var(--border);margin:32px 0}
-
-/* ══ ANIMATIONS ══ */
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.fade-up{animation:fadeUp .5s ease both}
-.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}.d5{animation-delay:.30s}
-
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.pulse{animation:pulse 2s ease infinite}
-
-/* ══ RESPONSIVE ══ */
-@media(max-width:900px){
-  .grid2,.grid3,.grid4{grid-template-columns:1fr}
-  .var-grid,.vehicle-grid,.price-grid,.rules-grid{grid-template-columns:1fr 1fr}
-  .page-title{font-size:30px}
-}
-@media(max-width:560px){
-  .var-grid,.vehicle-grid,.price-grid,.rules-grid{grid-template-columns:1fr}
-  .wrap{padding:0 14px}
-}
+:root{--white:#fff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;--orange:#FF5C00;--violet:#6C2BD9;--sky:#0284C7;--rose:#DC2626;--amber:#D97706;--green:#16A34A;--fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'JetBrains Mono',monospace}
+html,body{min-height:100vh;background:var(--off);color:var(--ink);font-family:var(--fb)}
+nav{background:var(--white);border-bottom:2px solid var(--ink);padding:0 36px;display:flex;align-items:center;height:62px;gap:12px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.lm{width:34px;height:34px;background:var(--orange);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:800;font-size:15px;color:white}
+.lt{font-family:var(--fh);font-weight:800;font-size:16px;color:var(--ink);letter-spacing:.04em}
+.nlbl{font-family:var(--fm);font-size:10px;color:var(--orange);background:#FFF3EE;border:2px solid #FFD0BC;padding:3px 9px;border-radius:5px;font-weight:600;letter-spacing:.06em}
+.nr{margin-left:auto;display:flex;gap:7px;align-items:center}
+.nb{font-size:11px;padding:7px 14px;border-radius:8px;border:2px solid var(--ink);background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;text-decoration:none;transition:all .15s}
+.nb:hover{background:var(--ink);color:white}
+.nb.save{background:var(--orange);color:white;border-color:var(--orange)}.nb.save:hover{background:#e54d00}
+/* HERO BANNER */
+.hero-banner{background:var(--ink);padding:56px 36px;color:white}
+.hb-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.ey{font-family:var(--fm);font-size:11px;color:var(--orange);letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px;font-weight:600}
+.ht{font-family:var(--fh);font-size:42px;font-weight:800;line-height:1.08;color:white;margin-bottom:12px}
+.ht span{color:var(--orange)}
+.hd{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.75;margin-bottom:24px}
+.eq-row{display:flex;gap:8px;flex-wrap:wrap}
+.eq-chip{font-family:var(--fm);font-size:11px;padding:5px 13px;border-radius:6px;font-weight:600;letter-spacing:.04em;border:2px solid}
+.eq-chip.org{background:#FFF3EE;color:var(--orange);border-color:var(--orange)}
+.eq-chip.vio{background:#F5F3FF;color:var(--violet);border-color:var(--violet)}
+.eq-chip.red{background:#FEF2F2;color:var(--rose);border-color:var(--rose);text-decoration:line-through}
+.big-eq{background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.15);border-radius:16px;padding:28px;text-align:center}
+.big-eq-lbl{font-family:var(--fm);font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+.big-eq-main{font-family:var(--fh);font-size:16px;font-weight:700;color:white;line-height:1.6}
+.big-eq-main em{color:var(--orange);font-style:normal}
+.big-eq-vars{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.eq-var{font-family:var(--fm);font-size:10px;padding:3px 10px;border-radius:5px;background:rgba(255,92,0,0.15);color:var(--orange);border:1px solid rgba(255,92,0,0.3);font-weight:500}
+/* WRAP */
+.wrap{max-width:1100px;margin:0 auto;padding:0 36px}
+section{padding:48px 0 0}
+/* SECTION HEAD */
+.sh{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.snum{font-family:var(--fm);font-size:11px;color:white;background:var(--orange);padding:4px 10px;border-radius:6px;font-weight:700;letter-spacing:.06em}
+.stit{font-family:var(--fh);font-size:17px;font-weight:800;color:var(--ink)}
+.sline{flex:1;height:2px;background:#E2E4E9}
+.sbadge{font-family:var(--fm);font-size:9px;font-weight:700;padding:3px 9px;border-radius:5px;text-transform:uppercase;letter-spacing:.06em}
+/* CARDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{background:var(--white);border:2px solid var(--ink);border-radius:16px;padding:20px}
+.card.orange-top{border-top:4px solid var(--orange)}
+.card.violet-top{border-top:4px solid var(--violet)}
+.card.sky-top{border-top:4px solid var(--sky)}
+.card.green-top{border-top:4px solid var(--green)}
+.card.rose-top{border-top:4px solid var(--rose)}
+.card.amber-top{border-top:4px solid var(--amber)}
+.ctit{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.ctit-bar{width:4px;height:18px;border-radius:2px}
+/* CODE BLOCKS */
+.code{background:var(--ink);border-radius:10px;padding:16px 18px;font-family:var(--fm);font-size:12px;line-height:1.85;margin:10px 0;border-left:4px solid var(--orange)}
+.ck{color:#FF9F6B;font-weight:600}.cop{color:#7DD3FC}.cv{color:#86EFAC}.cco{color:#6B7280;font-style:italic}.ccond{color:#FDE68A}.cr{color:#F0ABFC}
+/* FORMULA */
+.formula{background:var(--off);border:2px solid var(--ink);border-radius:10px;padding:12px 16px;font-family:var(--fm);font-size:13px;color:var(--orange);text-align:center;margin:10px 0;font-weight:600;border-left:4px solid var(--orange)}
+/* CALC */
+.calcwrap{background:var(--off);border:2px solid #E2E4E9;border-radius:12px;padding:16px;margin-top:14px}
+.calctit{font-family:var(--fm);font-size:10px;color:var(--sky);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;font-weight:700}
+.calcrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.calclbl{font-size:12px;color:var(--ink2);min-width:108px;font-family:var(--fh);font-weight:600}
+.calcinp{background:white;border:2px solid #E2E4E9;border-radius:7px;padding:7px 10px;font-size:12px;color:var(--ink);font-family:var(--fm);outline:none;transition:border .15s;width:108px}
+.calcinp:focus{border-color:var(--orange)}
+.calcunit{font-size:11px;color:var(--ink3);font-family:var(--fm);font-weight:600}
+.calcres{margin-top:10px;padding:10px 14px;border-radius:9px;font-family:var(--fh);font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.calcres.safe{background:#F0FDF4;color:var(--green);border:2px solid #86EFAC}
+.calcres.warn{background:#FFFBEB;color:var(--amber);border:2px solid #FDE68A}
+.calcres.danger{background:#FEF2F2;color:var(--rose);border:2px solid #FCA5A5}
+.calcres.info{background:#EFF6FF;color:var(--sky);border:2px solid #BFDBFE}
+.resdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* VEHICLE CARDS */
+.vcg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.vc{border-radius:16px;padding:22px;color:white;position:relative;overflow:hidden}
+.vc::before{content:'';position:absolute;top:-18px;right:-18px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.15)}
+.vc-icon{font-size:32px;margin-bottom:10px;display:block}
+.vc-name{font-family:var(--fh);font-size:14px;font-weight:800;color:white;margin-bottom:4px}
+.vc-cap{font-family:var(--fh);font-size:26px;font-weight:800;color:white;margin-bottom:10px}
+.vc-bar-bg{height:5px;background:rgba(255,255,255,0.25);border-radius:3px;margin-bottom:6px;overflow:hidden}
+.vc-bar{height:100%;border-radius:3px;background:rgba(255,255,255,0.8)}
+.vc-stat{font-size:11px;color:rgba(255,255,255,0.8);display:flex;justify-content:space-between;font-family:var(--fh);font-weight:600}
+/* LOAD ZONES */
+.lz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.lz{border-radius:16px;padding:22px;border:2px solid}
+/* DECISION TREE */
+.dtree{display:flex;flex-direction:column;gap:0}
+.dnode{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:2px solid #E2E4E9;background:white;margin-bottom:6px}
+.dicon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;font-family:var(--fm);flex-shrink:0;color:white}
+.dcond{font-family:var(--fm);font-size:11px;font-weight:600;margin-bottom:3px}
+.dact{font-size:11px;color:var(--ink2);font-family:var(--fh)}
+.dres{font-family:var(--fh);font-size:10px;padding:3px 9px;border-radius:5px;display:inline-block;margin-top:5px;font-weight:800;color:white}
+/* POOL SIMULATOR */
+.pool-list{margin:8px 0}
+.pool-row{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:7px;background:var(--off);border:2px solid #E2E4E9;margin-bottom:4px;font-size:12px}
+.pool-num{font-family:var(--fm);font-size:10px;color:var(--ink3);min-width:22px;font-weight:600}
+.pool-rm{background:none;border:none;cursor:pointer;color:var(--rose);font-size:14px;padding:0 2px;font-weight:700;margin-left:auto}
+/* CARTON */
+.carton-tbl{width:100%;margin:10px 0}
+.carton-tbl tr{border-bottom:2px solid var(--off)}
+.carton-tbl td{padding:9px 6px;font-size:12px}
+.carton-tbl td:first-child{font-family:var(--fh);font-weight:700;color:var(--ink)}
+/* NOTIFICATION TIMELINE */
+.ntl{display:flex;flex-direction:column;gap:6px}
+.ntrow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid;background:white}
+.nt-time{font-family:var(--fm);font-size:12px;font-weight:700;min-width:60px}
+.nt-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.nt-text{flex:1;font-size:12px;color:var(--ink)}
+.nt-text strong{font-family:var(--fh);font-size:12px;display:block}
+.nt-badge{font-family:var(--fm);font-size:9px;padding:3px 9px;border-radius:5px;font-weight:700;color:white}
+/* LOOP */
+.loop-list{display:flex;flex-direction:column;gap:0}
+.ls{display:flex;align-items:center;gap:12px;padding:11px 14px;background:white;border:2px solid #E2E4E9;border-radius:10px;margin-bottom:6px}
+.ls-num{width:28px;height:28px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:11px;color:white;font-weight:700;flex-shrink:0}
+.ls-text{font-family:var(--fh);font-size:13px;font-weight:700;color:var(--ink)}
+.ls-sub{font-family:var(--fm);font-size:10px;color:var(--ink3)}
+/* GOLDEN RULES */
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rule{display:flex;align-items:flex-start;gap:12px;padding:16px;background:white;border:2px solid var(--ink);border-radius:12px}
+.rule-num{font-family:var(--fh);font-size:22px;font-weight:800;color:#E2E4E9;line-height:1;flex-shrink:0;min-width:28px}
+.rule-title{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--ink);margin-bottom:4px}
+.rule-desc{font-size:12px;color:var(--ink3);line-height:1.55}
+/* FINAL EQ */
+.feq{background:var(--ink);border-radius:20px;padding:48px;text-align:center;margin:48px 0;position:relative;overflow:hidden}
+.feq::before{content:'';position:absolute;top:-50px;left:-50px;width:200px;height:200px;border-radius:50%;background:rgba(255,92,0,0.12)}
+.feq::after{content:'';position:absolute;bottom:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:rgba(108,43,217,0.12)}
+.feq-lbl{font-family:var(--fm);font-size:11px;color:var(--orange);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;font-weight:600}
+.feq-main{font-family:var(--fh);font-size:28px;font-weight:800;color:white;margin-bottom:8px;line-height:1.3;position:relative;z-index:1}
+.feq-main em{color:var(--orange);font-style:normal}
+.feq-sub{font-family:var(--fh);font-size:14px;color:rgba(255,255,255,0.6);margin-top:10px}
+/* VAR GRID */
+.vargrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.varitem{background:white;border:2px solid #E2E4E9;border-radius:10px;padding:13px;transition:border-color .15s}
+.varitem:hover{border-color:var(--orange)}
+.vname{font-family:var(--fm);font-size:10px;color:var(--orange);font-weight:700;letter-spacing:.06em;margin-bottom:5px}
+.vdesc{font-size:11px;color:var(--ink3);margin-bottom:8px;font-family:var(--fh);font-weight:600}
+.vinp{width:100%;background:var(--off);border:2px solid #E2E4E9;border-radius:6px;padding:7px 9px;font-size:12px;color:var(--ink);font-family:var(--fm);outline:none;transition:border .15s;font-weight:600}
+.vinp:focus{border-color:var(--orange);background:white}
+.vunit{font-size:10px;color:var(--ink3);margin-top:4px;font-family:var(--fm);font-weight:500}
+/* PRICE CARDS */
+.priceg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pcard{background:white;border:2px solid var(--ink);border-radius:14px;padding:18px;text-align:center}
+.ptype{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:6px;display:inline-block;margin-bottom:10px}
+.pformula{font-family:var(--fm);font-size:12px;color:var(--ink);margin-bottom:8px;line-height:1.6}
+.pdiscount{font-family:var(--fh);font-size:22px;font-weight:800;margin-top:6px}
+/* SAVE BAR */
+.savebar{position:sticky;bottom:0;background:var(--white);border-top:2px solid var(--ink);padding:14px 36px;display:flex;align-items:center;gap:12px;z-index:50}
+.savestatus{font-family:var(--fh);font-size:12px;font-weight:700;flex:1}
+.savestatus.saved{color:var(--green)}.savestatus.unsaved{color:var(--amber)}
+.savebtn{font-size:13px;padding:9px 22px;border-radius:8px;border:2px solid var(--orange);background:var(--orange);color:white;cursor:pointer;font-family:var(--fh);font-weight:800;transition:all .15s}
+.savebtn:hover{background:#e54d00}
+.resetbtn{font-size:12px;padding:8px 16px;border-radius:8px;border:2px solid var(--ink);background:white;color:var(--ink);cursor:pointer;font-family:var(--fh);font-weight:700;transition:all .15s}
+.resetbtn:hover{background:var(--ink);color:white}
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fu .5s ease both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}
+@media(max-width:900px){.g2,.g3,.vcg,.rg,.vargrid,.priceg{grid-template-columns:1fr 1fr}.hb-inner{grid-template-columns:1fr;gap:32px}.ht{font-size:30px}nav{padding:0 16px}.wrap{padding:0 16px}.savebar{padding:12px 16px}}
+@media(max-width:560px){.g2,.g3,.vcg,.rg,.vargrid,.priceg,.lz-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-
-<!-- ══ NAV ══ -->
-<nav class="topnav">
-  <a class="logo-wrap" href="index.html">
-    <div class="logo-sq">N</div>
-    <span class="logo-name">NAVADHAR</span>
-  </a>
-  <div class="nav-sep"></div>
-  <span class="nav-label">Logic Engine v1.0</span>
-  <div class="nav-right">
-    <a class="nav-btn" href="admin.html">Admin</a>
-    <a class="nav-btn" href="register.html">Register</a>
-    <a class="nav-btn" href="index.html">Home</a>
-    <button class="nav-btn gold" onclick="saveAll()">Save Changes</button>
+<nav>
+  <a class="logo" href="index.html"><div class="lm">N</div><span class="lt">NAVADHAR</span></a>
+  <span class="nlbl">LOGIC ENGINE v1.0</span>
+  <div class="nr">
+    <a class="nb" href="admin.html">Admin</a>
+    <a class="nb" href="register.html">Register</a>
+    <a class="nb" href="index.html">Home</a>
+    <button class="nb save" onclick="saveAll()">Save Changes</button>
   </div>
 </nav>
 
-<div class="wrap">
-
-<!-- ══ HERO ══ -->
-<div class="page-hero fade-up">
-  <div class="eyebrow">System Brain · Navadhar</div>
-  <h1 class="page-title">The <em>Logic Engine</em><br>Behind Every Delivery</h1>
-  <p class="page-sub">Every variable, formula, and decision tree that powers Navadhar's flow-based logistics. Edit any value — the system recalculates in real time.</p>
-  <div class="equation-bar">
-    <div class="eq-chip badge-gold">Time + Load + Route</div>
-    <span style="color:var(--text3);font-family:var(--font-m);font-size:12px">=</span>
-    <div class="eq-chip badge-cyan">Flow-based Logistics</div>
-    <span style="color:var(--text3);font-family:var(--font-m);font-size:12px">≠</span>
-    <div class="eq-chip badge-red" style="text-decoration:line-through">Order-based Delivery</div>
+<div class="hero-banner">
+  <div class="hb-inner">
+    <div class="fu">
+      <div class="ey">System Brain · Navadhar</div>
+      <h1 class="ht">The Logic<br><span>Engine</span></h1>
+      <p class="hd">Every variable, formula, and decision tree powering Navadhar's flow-based logistics. Edit any value — the system recalculates live.</p>
+      <div class="eq-row">
+        <div class="eq-chip org">Time + Load + Route</div>
+        <div class="eq-chip vio">= Flow-based Logistics</div>
+        <div class="eq-chip red">≠ Order-based Delivery</div>
+      </div>
+    </div>
+    <div class="big-eq fu d2">
+      <div class="big-eq-lbl">The Navadhar Efficiency Equation</div>
+      <div class="big-eq-main">Efficiency = <em>Load Utilization</em><br>× <em>Time Discipline</em><br>× <em>Route Clarity</em></div>
+      <div class="big-eq-vars">
+        <span class="eq-var">W = Total weight</span>
+        <span class="eq-var">C = Capacity</span>
+        <span class="eq-var">T = Time window</span>
+        <span class="eq-var">N = Orders</span>
+        <span class="eq-var">Z = Zone</span>
+        <span class="eq-var">D = Distance</span>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- ══ SECTION 1: SYSTEM VARIABLES ══ -->
-<section class="fade-up d1">
-  <div class="sec-head">
-    <span class="sec-num">01</span>
-    <span class="sec-title">System Variables — Edit all base values here</span>
-    <div class="sec-line"></div>
-    <span class="badge badge-gold">Admin Editable</span>
+<div class="wrap">
+
+<!-- SECTION 1: VARIABLES -->
+<section class="fu d1">
+  <div class="sh">
+    <span class="snum">01</span>
+    <span class="stit">System Variables — Edit All Base Values</span>
+    <div class="sline"></div>
+    <span class="sbadge" style="background:#FFF3EE;color:var(--orange);border:2px solid #FFD0BC">Admin Editable</span>
   </div>
-  <div class="var-grid" id="varGrid"></div>
+  <div class="vargrid" id="varGrid"></div>
 </section>
 
-<!-- ══ SECTION 2: VEHICLE CAPACITY MODEL ══ -->
-<section class="fade-up d2">
-  <div class="sec-head">
-    <span class="sec-num">02</span>
-    <span class="sec-title">Vehicle Capacity Model</span>
-    <div class="sec-line"></div>
-  </div>
-  <div class="vehicle-grid" id="vehicleGrid"></div>
-
-  <div class="calc-wrap" style="margin-top:16px">
-    <div class="calc-title">Live Load Calculator</div>
-    <div class="calc-row">
-      <span class="calc-label">Total weight (W)</span>
-      <input class="calc-input" id="lc-weight" type="number" value="160" oninput="calcLoad()"/>
-      <span class="calc-unit">kg</span>
-    </div>
-    <div class="calc-row">
-      <span class="calc-label">Vehicle type</span>
-      <select class="calc-input" id="lc-vehicle" onchange="calcLoad()" style="width:120px">
-        <option value="bike">Bike (20kg)</option>
-        <option value="3w" selected>3W (200kg)</option>
-        <option value="4w">4W (500kg)</option>
-      </select>
-    </div>
-    <div id="loadResult" class="calc-result safe"><div class="result-dot" style="background:var(--green)"></div>Calculating...</div>
+<!-- SECTION 2: VEHICLE CAPACITY -->
+<section class="fu d1">
+  <div class="sh"><span class="snum">02</span><span class="stit">Vehicle Capacity Model</span><div class="sline"></div></div>
+  <div class="vcg" id="vehicleGrid"></div>
+  <div class="calcwrap" style="margin-top:16px">
+    <div class="calctit">Live Load Calculator</div>
+    <div class="calcrow"><span class="calclbl">Total weight (W)</span><input class="calcinp" id="lc-w" type="number" value="160" oninput="calcLoad()"/><span class="calcunit">kg</span></div>
+    <div class="calcrow"><span class="calclbl">Vehicle type</span><select class="calcinp" id="lc-v" onchange="calcLoad()" style="width:130px"><option value="bike">Bike (20kg)</option><option value="3w" selected>3W (200kg)</option><option value="4w">4W (500kg)</option></select></div>
+    <div id="loadRes" class="calcres safe"><div class="resdot" style="background:var(--green)"></div>Calculating...</div>
   </div>
 </section>
 
-<!-- ══ SECTION 3: LOAD ZONES ══ -->
-<section class="fade-up d2">
-  <div class="sec-head">
-    <span class="sec-num">03</span>
-    <span class="sec-title">Load Decision Zones</span>
-    <div class="sec-line"></div>
-  </div>
-  <div class="content-grid grid3">
-    <div class="card green-accent">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--green)"></div>Safe Zone</div>
-      <div class="formula" id="sz-formula">W ≤ 0.9C</div>
-      <div class="formula-label" id="sz-example">e.g. W ≤ 180 kg for 3W</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:8px;font-family:var(--font-h)">Continue loading. Vehicle is operating within optimal range.</div>
-      <div class="badge badge-green" style="margin-top:8px">KEEP ADDING ORDERS</div>
+<!-- SECTION 3: LOAD ZONES -->
+<section class="fu d2">
+  <div class="sh"><span class="snum">03</span><span class="stit">Load Decision Zones</span><div class="sline"></div></div>
+  <div class="lz-grid">
+    <div class="lz" style="background:#F0FDF4;border-color:#86EFAC">
+      <div style="font-family:var(--fh);font-size:12px;font-weight:800;color:var(--green);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Safe Zone</div>
+      <div class="formula" style="background:#DCFCE7;border-color:#86EFAC;color:var(--green)" id="sz-f">W ≤ 0.9C</div>
+      <div style="font-size:11px;color:var(--ink2);margin-top:8px;line-height:1.6" id="sz-ex">e.g. W ≤ 180 kg for 3W</div>
+      <div style="margin-top:10px;font-size:11px;background:var(--green);color:white;padding:5px 12px;border-radius:6px;font-family:var(--fh);font-weight:800;display:inline-block">KEEP ADDING ORDERS</div>
     </div>
-    <div class="card" style="border-top:2px solid var(--amber)">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--amber)"></div>Adjustment Zone</div>
-      <div class="formula" id="az-formula">0.9C &lt; W ≤ 1.1C</div>
-      <div class="formula-label" id="az-example">e.g. 180–220 kg for 3W</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:8px;font-family:var(--font-h)">Apply best-fit removal. Remove one order to get under safe load.</div>
-      <div class="badge badge-amber" style="margin-top:8px">APPLY BEST-FIT</div>
+    <div class="lz" style="background:#FFFBEB;border-color:#FDE68A">
+      <div style="font-family:var(--fh);font-size:12px;font-weight:800;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Adjustment Zone</div>
+      <div class="formula" style="background:#FEF9C3;border-color:#FDE68A;color:var(--amber)" id="az-f">0.9C &lt; W ≤ 1.1C</div>
+      <div style="font-size:11px;color:var(--ink2);margin-top:8px;line-height:1.6" id="az-ex">e.g. 180–220 kg for 3W</div>
+      <div style="margin-top:10px;font-size:11px;background:var(--amber);color:white;padding:5px 12px;border-radius:6px;font-family:var(--fh);font-weight:800;display:inline-block">APPLY BEST-FIT</div>
     </div>
-    <div class="card red-accent">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--red)"></div>Upgrade Zone</div>
-      <div class="formula" id="uz-formula">W &gt; 1.1C</div>
-      <div class="formula-label" id="uz-example">e.g. W &gt; 220 kg for 3W</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:8px;font-family:var(--font-h)">Overflow exceeds buffer. Upgrade vehicle or split load.</div>
-      <div class="badge badge-red" style="margin-top:8px">UPGRADE VEHICLE</div>
+    <div class="lz" style="background:#FEF2F2;border-color:#FCA5A5">
+      <div style="font-family:var(--fh);font-size:12px;font-weight:800;color:var(--rose);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Upgrade Zone</div>
+      <div class="formula" style="background:#FEE2E2;border-color:#FCA5A5;color:var(--rose)" id="uz-f">W &gt; 1.1C</div>
+      <div style="font-size:11px;color:var(--ink2);margin-top:8px;line-height:1.6" id="uz-ex">e.g. W &gt; 220 kg for 3W</div>
+      <div style="margin-top:10px;font-size:11px;background:var(--rose);color:white;padding:5px 12px;border-radius:6px;font-family:var(--fh);font-weight:800;display:inline-block">UPGRADE VEHICLE</div>
     </div>
   </div>
 </section>
 
-<!-- ══ SECTION 4: DISPATCH LOGIC ══ -->
-<section class="fade-up d2">
-  <div class="sec-head">
-    <span class="sec-num">04</span>
-    <span class="sec-title">Dispatch Logic — Fire when ANY condition is true</span>
-    <div class="sec-line"></div>
-  </div>
-  <div class="content-grid grid2">
+<!-- SECTION 4: DISPATCH LOGIC -->
+<section class="fu d2">
+  <div class="sh"><span class="snum">04</span><span class="stit">Dispatch Logic</span><div class="sline"></div></div>
+  <div class="g2">
     <div>
-      <div class="decision-tree">
-        <div class="dt-node">
-          <div class="dt-icon" style="background:var(--gold3);color:var(--gold)">W</div>
-          <div class="dt-content">
-            <div class="dt-cond" id="dispatch-cond1">W ≥ 0.9C (180 kg for 3W)</div>
-            <div class="dt-action">Weight threshold reached — pool is full enough</div>
-            <div class="dt-result badge-green">DISPATCH NOW</div>
+      <div class="card orange-top">
+        <div class="ctit"><div class="ctit-bar" style="background:var(--orange)"></div>Fire when ANY condition is true</div>
+        <div class="dtree">
+          <div class="dnode">
+            <div class="dicon" style="background:var(--orange)">W</div>
+            <div><div class="dcond" style="color:var(--orange)" id="dc1">W ≥ 0.9C</div><div class="dact">Weight threshold reached — pool is full enough</div><div class="dres" style="background:var(--green)">DISPATCH NOW</div></div>
           </div>
-          <div class="ls-arrow">↓</div>
-        </div>
-        <div class="dt-node">
-          <div class="dt-icon" style="background:var(--cyan2);color:var(--cyan)">T</div>
-          <div class="dt-content">
-            <div class="dt-cond" id="dispatch-cond2">T ≥ max_time window</div>
-            <div class="dt-action">Time window expired — dispatch regardless of load</div>
-            <div class="dt-result badge-amber">DISPATCH (TIME)</div>
+          <div class="dnode">
+            <div class="dicon" style="background:var(--sky)">T</div>
+            <div><div class="dcond" style="color:var(--sky)" id="dc2">T ≥ max_time</div><div class="dact">Time window expired — dispatch regardless of load</div><div class="dres" style="background:var(--amber)">DISPATCH (TIME)</div></div>
           </div>
-          <div class="ls-arrow">↓</div>
-        </div>
-        <div class="dt-node">
-          <div class="dt-icon" style="background:var(--red2);color:var(--red)">!</div>
-          <div class="dt-content">
-            <div class="dt-cond">Emergency order arrives</div>
-            <div class="dt-action">Critical order — override pool, dispatch immediately</div>
-            <div class="dt-result badge-red">DISPATCH (EMERGENCY)</div>
+          <div class="dnode">
+            <div class="dicon" style="background:var(--rose)">!</div>
+            <div><div class="dcond" style="color:var(--rose)">Emergency order arrives</div><div class="dact">Critical priority — override pool and dispatch immediately</div><div class="dres" style="background:var(--rose)">DISPATCH (EMERGENCY)</div></div>
           </div>
         </div>
+        <div class="formula" style="margin-top:14px">Dispatch_time = min(T_limit, time_to_fill_capacity)</div>
       </div>
-      <div class="formula" style="margin-top:14px">Dispatch_time = min(T_limit, time_to_fill_capacity)</div>
     </div>
     <div>
-      <div class="card-title"><div class="card-title-dot" style="background:var(--cyan)"></div>Time Engine — Vehicle Speed Windows</div>
-      <div id="timeEngineDisplay"></div>
-      <div class="calc-wrap" style="margin-top:12px">
-        <div class="calc-title">Dispatch Timer Simulator</div>
-        <div class="calc-row">
-          <span class="calc-label">Current weight</span>
-          <input class="calc-input" id="dt-weight" type="number" value="120" oninput="calcDispatch()"/>
-          <span class="calc-unit">kg</span>
+      <div class="card sky-top">
+        <div class="ctit"><div class="ctit-bar" style="background:var(--sky)"></div>Time Engine</div>
+        <div id="timeEngine"></div>
+        <div class="calcwrap" style="margin-top:12px">
+          <div class="calctit">Dispatch Timer Simulator</div>
+          <div class="calcrow"><span class="calclbl">Current weight</span><input class="calcinp" id="dt-w" type="number" value="120" oninput="calcDispatch()"/><span class="calcunit">kg</span></div>
+          <div class="calcrow"><span class="calclbl">Time elapsed</span><input class="calcinp" id="dt-t" type="number" value="18" oninput="calcDispatch()"/><span class="calcunit">min</span></div>
+          <div id="dispatchRes" class="calcres info"><div class="resdot" style="background:var(--sky)"></div>Calculating...</div>
         </div>
-        <div class="calc-row">
-          <span class="calc-label">Time elapsed</span>
-          <input class="calc-input" id="dt-time" type="number" value="18" oninput="calcDispatch()"/>
-          <span class="calc-unit">min</span>
-        </div>
-        <div id="dispatchResult" class="calc-result info"><div class="result-dot" style="background:var(--blue)"></div>Calculating...</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ SECTION 5: POOLING + OVERFLOW ══ -->
-<section class="fade-up d3">
-  <div class="sec-head">
-    <span class="sec-num">05</span>
-    <span class="sec-title">Pooling Logic &amp; Overflow Handler</span>
-    <div class="sec-line"></div>
-  </div>
-  <div class="content-grid grid2">
-    <div class="card gold-accent">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--gold)"></div>Pooling Formula</div>
-      <div class="code-block">
-        <span class="code-line"><span class="code-key">W</span> <span class="code-op">=</span> <span class="code-val">Σ (order weights)</span></span>
-        <span class="code-line">&nbsp;</span>
-        <span class="code-line"><span class="code-cond">IF</span> <span class="code-key">W</span> <span class="code-op">&lt;</span> <span class="code-val">0.9C</span><span class="code-result">:</span></span>
-        <span class="code-line">  <span class="code-comment">→ Keep adding orders</span></span>
-        <span class="code-line"><span class="code-cond">ELSE</span><span class="code-result">:</span></span>
-        <span class="code-line">  <span class="code-comment">→ Check overflow logic</span></span>
+<!-- SECTION 5: POOLING -->
+<section class="fu d3">
+  <div class="sh"><span class="snum">05</span><span class="stit">Pooling Logic &amp; Overflow Handler</span><div class="sline"></div></div>
+  <div class="g2">
+    <div class="card orange-top">
+      <div class="ctit"><div class="ctit-bar" style="background:var(--orange)"></div>Pooling Formula</div>
+      <div class="code">
+        <span style="display:block"><span class="ck">W</span> <span class="cop">=</span> <span class="cv">Σ (order weights)</span></span>
+        <span style="display:block">&nbsp;</span>
+        <span style="display:block"><span class="ccond">IF</span> <span class="ck">W</span> <span class="cop">&lt;</span> <span class="cv">0.9C</span> <span class="cr">→</span> <span class="cco">keep adding</span></span>
+        <span style="display:block"><span class="ccond">ELSE</span> <span class="cr">→</span> <span class="cco">check overflow logic</span></span>
       </div>
-      <div class="calc-wrap">
-        <div class="calc-title">Pool Weight Simulator</div>
-        <div id="poolOrders"></div>
+      <div class="calcwrap">
+        <div class="calctit">Pool Weight Simulator</div>
+        <div class="pool-list" id="poolList"></div>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <input class="calc-input" id="new-order-weight" type="number" placeholder="kg" style="width:70px"/>
-          <button onclick="addPoolOrder()" style="background:var(--gold3);border:1px solid rgba(245,166,35,0.3);border-radius:6px;padding:5px 12px;color:var(--gold);font-family:var(--font-m);font-size:11px;cursor:pointer;font-weight:600">+ Add</button>
-          <button onclick="clearPoolOrders()" style="background:var(--red2);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:5px 10px;color:var(--red);font-family:var(--font-m);font-size:11px;cursor:pointer">Clear</button>
+          <input class="calcinp" id="new-order-w" type="number" placeholder="kg" style="width:70px;flex:1"/>
+          <button onclick="addPoolOrder()" style="background:var(--orange);border:2px solid var(--orange);border-radius:7px;padding:6px 12px;color:white;font-family:var(--fm);font-size:11px;cursor:pointer;font-weight:700">+ Add</button>
+          <button onclick="clearPoolOrders()" style="background:white;border:2px solid var(--rose);border-radius:7px;padding:6px 10px;color:var(--rose);font-family:var(--fm);font-size:11px;cursor:pointer;font-weight:700">Clear</button>
         </div>
-        <div id="poolResult" class="calc-result safe" style="margin-top:8px"><div class="result-dot" style="background:var(--green)"></div>No orders yet</div>
+        <div id="poolRes" class="calcres info" style="margin-top:8px"><div class="resdot" style="background:var(--sky)"></div>No orders yet</div>
       </div>
     </div>
-    <div class="card cyan-accent">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--cyan)"></div>Overflow + Best-Fit Removal</div>
-      <div class="code-block">
-        <span class="code-line"><span class="code-key">Overflow</span> <span class="code-op">=</span> <span class="code-val">W - C</span></span>
-        <span class="code-line">&nbsp;</span>
-        <span class="code-line"><span class="code-cond">IF</span> Overflow <span class="code-op">≤</span> <span class="code-val">0.1C</span><span class="code-result">:</span></span>
-        <span class="code-line">  <span class="code-comment">→ Remove best-fit order</span></span>
-        <span class="code-line">&nbsp;</span>
-        <span class="code-line"><span class="code-cond">IF</span> Overflow <span class="code-op">&gt;</span> <span class="code-val">0.2C</span><span class="code-result">:</span></span>
-        <span class="code-line">  <span class="code-comment">→ Upgrade vehicle</span></span>
+    <div class="card sky-top">
+      <div class="ctit"><div class="ctit-bar" style="background:var(--sky)"></div>Overflow + Best-Fit Removal</div>
+      <div class="code">
+        <span style="display:block"><span class="ck">Overflow</span> <span class="cop">=</span> <span class="cv">W - C</span></span>
+        <span style="display:block">&nbsp;</span>
+        <span style="display:block"><span class="ccond">IF</span> Overflow <span class="cop">≤</span> <span class="cv">0.1C</span><span class="cr">:</span></span>
+        <span style="display:block">  <span class="cco">→ Remove best-fit order</span></span>
+        <span style="display:block"><span class="ccond">IF</span> Overflow <span class="cop">&gt;</span> <span class="cv">0.2C</span><span class="cr">:</span></span>
+        <span style="display:block">  <span class="cco">→ Upgrade vehicle</span></span>
       </div>
-      <div class="code-block" style="border-left-color:var(--cyan)">
-        <span class="code-line"><span class="code-comment">// Best-Fit Goal: Maximize W ≤ C</span></span>
-        <span class="code-line"><span class="code-cond">For</span> <span class="code-key">each</span> order i<span class="code-result">:</span></span>
-        <span class="code-line">  Try removing i</span>
-        <span class="code-line">  Calculate new W</span>
-        <span class="code-line"><span class="code-key">Pick</span> i <span class="code-cond">where</span> W closest to C</span>
+      <div class="code" style="margin-top:8px;border-left-color:var(--violet)">
+        <span style="display:block"><span class="cco">// Best-Fit Goal: Maximize W ≤ C</span></span>
+        <span style="display:block"><span class="ccond">For</span> <span class="ck">each</span> order i<span class="cr">:</span></span>
+        <span style="display:block">  Try removing i → calc new W</span>
+        <span style="display:block"><span class="ck">Pick</span> i <span class="ccond">where</span> W closest to C</span>
       </div>
-      <div style="margin-top:10px">
-        <div class="code-block" style="border-left-color:var(--amber)">
-          <span class="code-line"><span class="code-comment">// Large order rule:</span></span>
-          <span class="code-line"><span class="code-cond">IF</span> order_weight <span class="code-op">≥</span> <span class="code-val">0.5C</span><span class="code-result">:</span></span>
-          <span class="code-line">  <span class="code-comment">→ Assign own vehicle</span></span>
-        </div>
+      <div class="code" style="margin-top:8px;border-left-color:var(--amber)">
+        <span style="display:block"><span class="cco">// Large order special case:</span></span>
+        <span style="display:block"><span class="ccond">IF</span> order_weight <span class="cop">≥</span> <span class="cv">0.5C</span><span class="cr">:</span></span>
+        <span style="display:block">  <span class="cco">→ Assign its own vehicle</span></span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ SECTION 6: CARTON WEIGHT SYSTEM ══ -->
-<section class="fade-up d3">
-  <div class="sec-head">
-    <span class="sec-num">06</span>
-    <span class="sec-title">Input System — Carton-based Weight Estimation</span>
-    <div class="sec-line"></div>
-    <span class="badge badge-cyan">Critical</span>
-  </div>
-  <div class="content-grid grid2">
-    <div class="card gold-accent">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--gold)"></div>Carton Conversion Table</div>
-      <div id="cartonTable"></div>
-      <div class="formula" style="margin-top:12px">Est. Weight = Σ (carton_count × avg_weight)</div>
+<!-- SECTION 6: CARTON SYSTEM -->
+<section class="fu d3">
+  <div class="sh"><span class="snum">06</span><span class="stit">Input System — Carton-based Weight Estimation</span><div class="sline"></div><span class="sbadge" style="background:#EFF6FF;color:var(--sky);border:2px solid #BFDBFE">Critical</span></div>
+  <div class="g2">
+    <div class="card orange-top">
+      <div class="ctit"><div class="ctit-bar" style="background:var(--orange)"></div>Carton Conversion Table</div>
+      <div id="cartonTbl"></div>
+      <div class="formula" style="margin-top:14px">Est. Weight = Σ (carton_count × avg_weight)</div>
     </div>
-    <div class="card cyan-accent">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--cyan)"></div>Live Carton Calculator</div>
-      <div id="cartonCalcRows"></div>
-      <div id="cartonResult" class="calc-result info" style="margin-top:10px"><div class="result-dot" style="background:var(--blue)"></div>Enter cartons above</div>
+    <div class="card sky-top">
+      <div class="ctit"><div class="ctit-bar" style="background:var(--sky)"></div>Live Carton Calculator</div>
+      <div id="cartonCalc"></div>
+      <div id="cartonRes" class="calcres info" style="margin-top:10px"><div class="resdot" style="background:var(--sky)"></div>Enter carton counts above</div>
     </div>
   </div>
 </section>
 
-<!-- ══ SECTION 7: ROUTING LOGIC ══ -->
-<section class="fade-up d3">
-  <div class="sec-head">
-    <span class="sec-num">07</span>
-    <span class="sec-title">Routing Logic — City Grid Flow</span>
-    <div class="sec-line"></div>
-  </div>
-  <div class="content-grid grid2">
+<!-- SECTION 7: ROUTING -->
+<section class="fu d3">
+  <div class="sh"><span class="snum">07</span><span class="stit">Routing Logic &amp; Route Efficiency</span><div class="sline"></div></div>
+  <div class="g2">
     <div>
-      <div class="code-block">
-        <span class="code-line"><span class="code-comment">// Zone rule</span></span>
-        <span class="code-line"><span class="code-key">1 vehicle</span> <span class="code-op">=</span> <span class="code-val">1 zone</span></span>
-        <span class="code-line">&nbsp;</span>
-        <span class="code-line"><span class="code-comment">// Pickup flow</span></span>
-        <span class="code-line">Sort by distance <span class="code-op">ASC</span></span>
-        <span class="code-line">Route<span class="code-result">:</span> Center <span class="code-op">→</span> Outward</span>
-        <span class="code-line">&nbsp;</span>
-        <span class="code-line"><span class="code-comment">// Delivery flow</span></span>
-        <span class="code-line">Sort by distance <span class="code-op">DESC</span></span>
-        <span class="code-line">Route<span class="code-result">:</span> Farthest <span class="code-op">→</span> Inward</span>
-      </div>
-      <div class="formula" style="margin-top:12px">Efficiency = Total Load / Total Distance</div>
-      <div class="formula-label">Maximize this value every run</div>
-      <div class="calc-wrap" style="margin-top:12px">
-        <div class="calc-title">Route Efficiency Calculator</div>
-        <div class="calc-row">
-          <span class="calc-label">Total load (kg)</span>
-          <input class="calc-input" id="re-load" type="number" value="170" oninput="calcEfficiency()"/>
+      <div class="card orange-top">
+        <div class="ctit"><div class="ctit-bar" style="background:var(--orange)"></div>City Grid Flow Rules</div>
+        <div class="code">
+          <span style="display:block"><span class="cco">// Zone rule</span></span>
+          <span style="display:block"><span class="ck">1 vehicle</span> <span class="cop">=</span> <span class="cv">1 zone (no cross-zone)</span></span>
+          <span style="display:block">&nbsp;</span>
+          <span style="display:block"><span class="cco">// Pickup: sort ASC by distance</span></span>
+          <span style="display:block">Route<span class="cr">:</span> Center <span class="cop">→</span> Outward</span>
+          <span style="display:block">&nbsp;</span>
+          <span style="display:block"><span class="cco">// Delivery: sort DESC by distance</span></span>
+          <span style="display:block">Route<span class="cr">:</span> Farthest <span class="cop">→</span> Inward</span>
+          <span style="display:block">&nbsp;</span>
+          <span style="display:block"><span class="ck">Vehicle A</span> <span class="cop">→</span> <span class="cv">Pickup phase</span></span>
+          <span style="display:block"><span class="ck">Vehicle B</span> <span class="cop">→</span> <span class="cv">Delivery phase</span></span>
+          <span style="display:block"><span class="ccond">Then swap</span> <span class="cco">// continuous movement</span></span>
         </div>
-        <div class="calc-row">
-          <span class="calc-label">Total distance</span>
-          <input class="calc-input" id="re-dist" type="number" value="12" oninput="calcEfficiency()"/>
-          <span class="calc-unit">km</span>
-        </div>
-        <div id="efficiencyResult" class="calc-result info"><div class="result-dot" style="background:var(--blue)"></div>Calculating...</div>
+        <div class="formula" style="margin-top:12px">Efficiency = Total Load / Total Distance</div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title"><div class="card-title-dot" style="background:var(--gold)"></div>Driver Flow Model</div>
-      <div class="code-block">
-        <span class="code-line"><span class="code-key">Vehicle A</span> <span class="code-op">→</span> <span class="code-val">Pickup phase</span></span>
-        <span class="code-line"><span class="code-key">Vehicle B</span> <span class="code-op">→</span> <span class="code-val">Delivery phase</span></span>
-        <span class="code-line"><span class="code-cond">Then</span> swap <span class="code-comment">// continuous movement</span></span>
+    <div>
+      <div class="card sky-top" style="margin-bottom:14px">
+        <div class="ctit"><div class="ctit-bar" style="background:var(--sky)"></div>Route Efficiency Calculator</div>
+        <div class="calcrow"><span class="calclbl">Total load (kg)</span><input class="calcinp" id="re-load" type="number" value="170" oninput="calcEfficiency()"/></div>
+        <div class="calcrow" style="margin-top:8px"><span class="calclbl">Total distance</span><input class="calcinp" id="re-dist" type="number" value="12" oninput="calcEfficiency()"/><span class="calcunit">km</span></div>
+        <div id="effRes" class="calcres info" style="margin-top:10px"><div class="resdot" style="background:var(--sky)"></div>Calculating...</div>
       </div>
-      <div class="card-title" style="margin-top:14px"><div class="card-title-dot" style="background:var(--red)"></div>Core Route Constraints</div>
-      <div class="decision-tree">
-        <div class="dt-node" style="margin-bottom:4px">
-          <div class="dt-icon" style="background:var(--red2);color:var(--red);font-size:10px">TIME</div>
-          <div class="dt-content"><div class="dt-cond">Never delay beyond time window</div></div>
-        </div>
-        <div class="dt-node" style="margin-bottom:4px">
-          <div class="dt-icon" style="background:var(--amber2);color:var(--amber);font-size:9px">LOAD</div>
-          <div class="dt-content"><div class="dt-cond">Never overload beyond safe margin</div></div>
-        </div>
-        <div class="dt-node" style="margin-bottom:4px">
-          <div class="dt-icon" style="background:var(--blue2);color:var(--blue);font-size:9px">ZONE</div>
-          <div class="dt-content"><div class="dt-cond">No zig-zag across zones</div></div>
-        </div>
-        <div class="dt-node">
-          <div class="dt-icon" style="background:var(--green2);color:var(--green);font-size:8px">MOVE</div>
-          <div class="dt-content"><div class="dt-cond">Ensure continuous driver movement</div></div>
+      <div class="card rose-top">
+        <div class="ctit"><div class="ctit-bar" style="background:var(--rose)"></div>Core Route Constraints</div>
+        <div class="dtree">
+          <div class="dnode"><div class="dicon" style="background:var(--rose);font-size:9px">TIME</div><div><div class="dcond" style="color:var(--rose)">Never delay beyond time window</div></div></div>
+          <div class="dnode"><div class="dicon" style="background:var(--amber);font-size:9px">LOAD</div><div><div class="dcond" style="color:var(--amber)">Never overload beyond safe margin</div></div></div>
+          <div class="dnode"><div class="dicon" style="background:var(--sky);font-size:9px">ZONE</div><div><div class="dcond" style="color:var(--sky)">No zig-zag across zones</div></div></div>
+          <div class="dnode"><div class="dicon" style="background:var(--green);font-size:8px">MOVE</div><div><div class="dcond" style="color:var(--green)">Ensure continuous driver movement</div></div></div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ SECTION 8: PRICING ENGINE ══ -->
-<section class="fade-up d4">
-  <div class="sec-head">
-    <span class="sec-num">08</span>
-    <span class="sec-title">Pricing Engine</span>
-    <div class="sec-line"></div>
-    <span class="badge badge-gold">Admin Editable</span>
-  </div>
-  <div class="price-grid" id="priceGrid"></div>
-  <div class="calc-wrap" style="margin-top:16px">
-    <div class="calc-title">Live Price Calculator</div>
+<!-- SECTION 8: PRICING -->
+<section class="fu d3">
+  <div class="sh"><span class="snum">08</span><span class="stit">Pricing Engine</span><div class="sline"></div><span class="sbadge" style="background:#FFF3EE;color:var(--orange);border:2px solid #FFD0BC">Admin Editable</span></div>
+  <div class="priceg" id="priceGrid"></div>
+  <div class="calcwrap" style="margin-top:16px">
+    <div class="calctit">Live Price Calculator</div>
     <div style="display:flex;gap:16px;flex-wrap:wrap">
-      <div class="calc-row">
-        <span class="calc-label">Base price</span>
-        <input class="calc-input" id="pc-base" type="number" value="100" oninput="calcPrice()"/>
-        <span class="calc-unit">₹</span>
-      </div>
-      <div class="calc-row">
-        <span class="calc-label">Order count</span>
-        <input class="calc-input" id="pc-orders" type="number" value="3" min="1" max="10" oninput="calcPrice()"/>
-      </div>
-      <div class="calc-row">
-        <span class="calc-label">Type</span>
-        <select class="calc-input" id="pc-type" onchange="calcPrice()" style="width:110px">
-          <option value="smart">Smart (pooled)</option>
-          <option value="express">Express</option>
-        </select>
-      </div>
+      <div class="calcrow"><span class="calclbl">Base price</span><input class="calcinp" id="pc-base" type="number" value="100" oninput="calcPrice()"/><span class="calcunit">₹</span></div>
+      <div class="calcrow"><span class="calclbl">Order count</span><input class="calcinp" id="pc-orders" type="number" value="3" min="1" max="10" oninput="calcPrice()"/></div>
+      <div class="calcrow"><span class="calclbl">Type</span><select class="calcinp" id="pc-type" onchange="calcPrice()" style="width:130px"><option value="smart">Smart (pooled)</option><option value="express">Express</option></select></div>
     </div>
-    <div id="priceResult" class="calc-result info" style="margin-top:8px"><div class="result-dot" style="background:var(--blue)"></div>Calculating...</div>
+    <div id="priceRes" class="calcres info" style="margin-top:8px"><div class="resdot" style="background:var(--sky)"></div>Calculating...</div>
   </div>
 </section>
 
-<!-- ══ SECTION 9: NOTIFICATION TIMELINE ══ -->
-<section class="fade-up d4">
-  <div class="sec-head">
-    <span class="sec-num">09</span>
-    <span class="sec-title">Notification Timeline</span>
-    <div class="sec-line"></div>
-    <span class="badge badge-gold">Admin Editable</span>
-  </div>
-  <div class="notif-timeline" id="notifTimeline"></div>
+<!-- SECTION 9: NOTIFICATIONS -->
+<section class="fu d3">
+  <div class="sh"><span class="snum">09</span><span class="stit">Notification Timeline</span><div class="sline"></div><span class="sbadge" style="background:#FFF3EE;color:var(--orange);border:2px solid #FFD0BC">Admin Editable</span></div>
+  <div class="ntl" id="notifTL"></div>
 </section>
 
-<!-- ══ SECTION 10: SYSTEM LOOP ══ -->
-<section class="fade-up d4">
-  <div class="sec-head">
-    <span class="sec-num">10</span>
-    <span class="sec-title">Full System Loop</span>
-    <div class="sec-line"></div>
-  </div>
-  <div class="content-grid grid2">
-    <div class="loop-steps" id="systemLoop"></div>
+<!-- SECTION 10: SYSTEM LOOP -->
+<section class="fu d3">
+  <div class="sh"><span class="snum">10</span><span class="stit">Full System Loop</span><div class="sline"></div></div>
+  <div class="g2">
+    <div class="loop-list" id="systemLoop"></div>
     <div>
-      <div class="card-title"><div class="card-title-dot" style="background:var(--gold)"></div>Demand Logic</div>
-      <div class="code-block">
-        <span class="code-line"><span class="code-key">Success</span><span class="code-result">:</span> <span class="code-val">Orders_per_drive ≥ 3</span></span>
-        <span class="code-line"><span class="code-key">Failure</span><span class="code-result">:</span> <span class="code-val">Orders_per_drive ≤ 1</span></span>
-        <span class="code-line">  <span class="code-comment">→ No pooling benefit</span></span>
+      <div class="card amber-top" style="margin-bottom:14px">
+        <div class="ctit"><div class="ctit-bar" style="background:var(--amber)"></div>Demand Logic</div>
+        <div class="code">
+          <span style="display:block"><span class="ck">Success</span><span class="cr">:</span> <span class="cv">Orders ≥ 3 per drive</span></span>
+          <span style="display:block"><span class="ck">Failure</span><span class="cr">:</span> <span class="cv">Orders ≤ 1 per drive</span></span>
+          <span style="display:block">  <span class="cco">→ No pooling benefit</span></span>
+        </div>
       </div>
-      <div class="card-title" style="margin-top:14px"><div class="card-title-dot" style="background:var(--cyan)"></div>Vehicle Assignment</div>
-      <div class="code-block" style="border-left-color:var(--cyan)">
-        <span class="code-line"><span class="code-cond">IF</span> W <span class="code-op">≤</span> <span class="code-val">200kg</span> <span class="code-op">→</span> <span class="code-key">3W</span></span>
-        <span class="code-line"><span class="code-cond">IF</span> W <span class="code-op">&gt;</span> <span class="code-val">200kg</span> <span class="code-op">→</span> <span class="code-key">4W</span></span>
-        <span class="code-line"><span class="code-cond">IF</span> W <span class="code-op">&gt;</span> <span class="code-val">1.1C</span> <span class="code-op">→</span> <span class="code-comment">upgrade</span></span>
+      <div class="card violet-top">
+        <div class="ctit"><div class="ctit-bar" style="background:var(--violet)"></div>Vehicle Assignment</div>
+        <div class="code">
+          <span style="display:block"><span class="ccond">IF</span> W <span class="cop">≤</span> <span class="cv">200kg</span> <span class="cop">→</span> <span class="ck">3-Wheeler</span></span>
+          <span style="display:block"><span class="ccond">IF</span> W <span class="cop">&gt;</span> <span class="cv">200kg</span> <span class="cop">→</span> <span class="ck">4-Wheeler</span></span>
+          <span style="display:block"><span class="ccond">IF</span> W <span class="cop">&gt;</span> <span class="cv">1.1C</span> <span class="cop">→</span> <span class="ck">Upgrade</span></span>
+          <span style="display:block"><span class="ccond">IF</span> order <span class="cop">≥</span> <span class="cv">0.5C</span> <span class="cop">→</span> <span class="ck">Own vehicle</span></span>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ SECTION 11: GOLDEN RULES ══ -->
-<section class="fade-up d5">
-  <div class="sec-head">
-    <span class="sec-num">11</span>
-    <span class="sec-title">Golden Rules — Non-negotiable</span>
-    <div class="sec-line"></div>
-  </div>
-  <div class="rules-grid">
-    <div class="rule-card"><div class="rule-num">1</div><div class="rule-text"><strong>Consistency &gt; Optimization</strong>A predictable system beats a perfect-but-unreliable one.</div></div>
-    <div class="rule-card"><div class="rule-num">2</div><div class="rule-text"><strong>Time &gt; Perfect Load</strong>Dispatch on time even if vehicle isn't at 90% capacity.</div></div>
-    <div class="rule-card"><div class="rule-num">3</div><div class="rule-text"><strong>Flow &gt; Individual Order</strong>The route serves the pool, not one customer's preference.</div></div>
-    <div class="rule-card"><div class="rule-num">4</div><div class="rule-text"><strong>System Decides, Not User</strong>Zone, vehicle, and time are assigned by the engine.</div></div>
-    <div class="rule-card"><div class="rule-num">5</div><div class="rule-text"><strong>Start Small, Scale After</strong>Validate 3 orders per drive before expanding coverage.</div></div>
-    <div class="rule-card"><div class="rule-num">6</div><div class="rule-text"><strong>Customer Chooses Time vs Cost</strong>Express or Smart — not vehicle type or zone.</div></div>
+<!-- SECTION 11: GOLDEN RULES -->
+<section class="fu d3">
+  <div class="sh"><span class="snum">11</span><span class="stit">Golden Rules — Non-Negotiable</span><div class="sline"></div></div>
+  <div class="rg">
+    <div class="rule"><div class="rule-num">1</div><div><div class="rule-title">Consistency &gt; Optimization</div><div class="rule-desc">A predictable system beats a perfect-but-unreliable one. Run on schedule every time.</div></div></div>
+    <div class="rule"><div class="rule-num">2</div><div><div class="rule-title">Time &gt; Perfect Load</div><div class="rule-desc">Dispatch on time even if vehicle isn't at 90% capacity. Time is the priority.</div></div></div>
+    <div class="rule"><div class="rule-num">3</div><div><div class="rule-title">Flow &gt; Individual Order</div><div class="rule-desc">The route serves the pool, not one customer's preference. System logic wins.</div></div></div>
+    <div class="rule"><div class="rule-num">4</div><div><div class="rule-title">System Decides, Not User</div><div class="rule-desc">Zone, vehicle, and time are assigned by the engine. Customer chooses time vs cost only.</div></div></div>
+    <div class="rule"><div class="rule-num">5</div><div><div class="rule-title">Start Small, Scale After</div><div class="rule-desc">Validate 3 orders per drive before expanding coverage to new zones.</div></div></div>
+    <div class="rule"><div class="rule-num">6</div><div><div class="rule-title">Customer: Time vs Cost Only</div><div class="rule-desc">Express (fast, expensive) or Smart (wait, cheaper). Not vehicle type, not zone.</div></div></div>
   </div>
 </section>
 
-<!-- ══ FINAL EQUATION ══ -->
-<div class="final-eq fade-up d5">
-  <div class="feq-label">The Navadhar Efficiency Equation</div>
+<div class="feq">
+  <div class="feq-lbl">The Navadhar Efficiency Equation</div>
   <div class="feq-main">Efficiency = <em>Load Utilization</em> × <em>Time Discipline</em> × <em>Route Clarity</em></div>
-  <div class="feq-sub">You are building a logistics operating system for unstructured markets</div>
-  <div class="feq-vars">
-    <span class="feq-var">W = Total pooled weight</span>
-    <span class="feq-var">C = Vehicle capacity</span>
-    <span class="feq-var">T = Time window</span>
-    <span class="feq-var">N = Number of orders</span>
-    <span class="feq-var">Z = Zone</span>
-    <span class="feq-var">D = Distance</span>
-  </div>
+  <div class="feq-sub">You are building a logistics operating system for unstructured markets.</div>
 </div>
 
 </div><!-- /wrap -->
 
-<!-- ══ SAVE BAR ══ -->
-<div class="save-bar">
-  <div class="save-status" id="saveStatus">All changes saved</div>
-  <button class="reset-btn" onclick="resetDefaults()">Reset to defaults</button>
-  <button class="save-btn" onclick="saveAll()">Save All Changes</button>
+<div class="savebar">
+  <div class="savestatus saved" id="saveStatus">All changes saved</div>
+  <button class="resetbtn" onclick="resetDefaults()">Reset to defaults</button>
+  <button class="savebtn" onclick="saveAll()">Save All Changes</button>
 </div>
 
 <script>
-// ═══════════════════════════════════════
-// NAVADHAR LOGIC ENGINE — SYSTEM BRAIN
-// ═══════════════════════════════════════
+window.addEventListener('load', function(){
 
-// ── DEFAULT CONFIG ──
-const DEFAULTS = {
-  // System Variables
-  safe_util: 0.9,
-  adj_upper: 1.1,
-  overflow_upgrade: 0.2,
-  overflow_bestfit: 0.1,
-  max_time_bike: 15,
-  max_time_3w: 30,
-  max_time_4w: 45,
-  min_orders_success: 3,
-  min_orders_failure: 1,
-  // Vehicle Capacities
-  cap_bike: 20,
-  cap_3w: 200,
-  cap_4w: 500,
-  // Carton Weights
-  w_small: 5,
-  w_medium: 12,
-  w_large: 22,
-  // Pricing
-  base_price: 100,
-  discount_2: 12,
-  discount_3to5: 25,
-  express_premium: 30,
-  // Notification timings
-  notif_prepare: 60,
-  notif_coming: 15,
-};
+const DEFAULTS={safe_util:.9,adj_upper:1.1,overflow_upgrade:.2,overflow_bestfit:.1,max_time_bike:15,max_time_3w:30,max_time_4w:45,min_orders_success:3,cap_bike:20,cap_3w:200,cap_4w:500,w_small:5,w_medium:12,w_large:22,discount_2:12,discount_3to5:25,express_premium:30,notif_prepare:60,notif_coming:15,base_price:100};
+let CFG={};let poolOrderList=[];let hasUnsaved=false;
+function loadCFG(){try{const s=JSON.parse(localStorage.getItem('nvd_logic_cfg')||'{}');CFG=Object.assign({},DEFAULTS,s);}catch(e){CFG={...DEFAULTS};}}
+function saveCFG(){localStorage.setItem('nvd_logic_cfg',JSON.stringify(CFG));hasUnsaved=false;updateSaveStatus();}
+function markUnsaved(){hasUnsaved=true;updateSaveStatus();}
+function updateSaveStatus(){const el=document.getElementById('saveStatus');el.textContent=hasUnsaved?'Unsaved changes — click Save to apply':'All changes saved';el.className='savestatus '+(hasUnsaved?'unsaved':'saved');}
+function saveAll(){document.querySelectorAll('[data-cfg]').forEach(el=>{const k=el.dataset.cfg,v=parseFloat(el.value);if(!isNaN(v))CFG[k]=v;});saveCFG();recalcAll();}
+function resetDefaults(){if(!confirm('Reset all values to defaults?'))return;CFG={...DEFAULTS};saveCFG();renderAll();}
 
-let CFG = {};
-let poolOrders = [];
-let cartonCounts = { small: 0, medium: 0, large: 0 };
-let hasUnsaved = false;
-
-function loadCFG() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('nvd_logic_cfg') || '{}');
-    CFG = Object.assign({}, DEFAULTS, saved);
-  } catch(e) { CFG = {...DEFAULTS}; }
-}
-
-function saveCFG() {
-  localStorage.setItem('nvd_logic_cfg', JSON.stringify(CFG));
-  hasUnsaved = false;
-  updateSaveStatus();
-}
-
-function markUnsaved() {
-  hasUnsaved = true;
-  updateSaveStatus();
-}
-
-function updateSaveStatus() {
-  const el = document.getElementById('saveStatus');
-  if (hasUnsaved) {
-    el.textContent = 'Unsaved changes — click Save to apply';
-    el.className = 'save-status unsaved';
-  } else {
-    el.textContent = 'All changes saved';
-    el.className = 'save-status saved';
-  }
-}
-
-function saveAll() {
-  // Collect all var inputs
-  document.querySelectorAll('[data-cfg]').forEach(el => {
-    const key = el.dataset.cfg;
-    const val = parseFloat(el.value);
-    if (!isNaN(val)) CFG[key] = val;
-  });
-  saveCFG();
-  recalcAll();
-}
-
-function resetDefaults() {
-  if (!confirm('Reset all logic engine values to defaults?')) return;
-  CFG = {...DEFAULTS};
-  saveCFG();
-  renderAll();
-}
-
-// ── VARIABLE EDITOR ──
-const VAR_DEFS = [
-  { key:'safe_util',    label:'Safe utilization',    desc:'Target load ratio (0.9 = 90%)',  unit:'ratio',  min:0.5, max:1.0, step:0.01 },
-  { key:'adj_upper',    label:'Adjustment ceiling',  desc:'Max before upgrade trigger',     unit:'ratio',  min:1.0, max:1.5, step:0.01 },
-  { key:'overflow_bestfit', label:'Best-fit threshold', desc:'Remove order if overflow ≤', unit:'ratio', min:0.05, max:0.3, step:0.01 },
-  { key:'overflow_upgrade', label:'Upgrade threshold', desc:'Upgrade vehicle if overflow >', unit:'ratio', min:0.1, max:0.5, step:0.01 },
-  { key:'cap_bike',     label:'Bike capacity',        desc:'Maximum load for bike',          unit:'kg',     min:5, max:50, step:1 },
-  { key:'cap_3w',       label:'3W capacity',          desc:'Maximum load for 3-wheeler',     unit:'kg',     min:50, max:500, step:10 },
-  { key:'cap_4w',       label:'4W capacity',          desc:'Maximum load for 4-wheeler',     unit:'kg',     min:200, max:2000, step:50 },
-  { key:'max_time_bike',label:'Bike time window',     desc:'Max pooling time for bike',       unit:'min',    min:5, max:60, step:1 },
-  { key:'max_time_3w',  label:'3W time window',       desc:'Max pooling time for 3W',         unit:'min',    min:10, max:120, step:5 },
-  { key:'max_time_4w',  label:'4W time window',       desc:'Max pooling time for 4W',         unit:'min',    min:15, max:180, step:5 },
-  { key:'w_small',      label:'Small box weight',     desc:'Average kg per small carton',     unit:'kg',     min:1, max:15, step:0.5 },
-  { key:'w_medium',     label:'Medium box weight',    desc:'Average kg per medium carton',    unit:'kg',     min:5, max:25, step:0.5 },
-  { key:'w_large',      label:'Large box weight',     desc:'Average kg per large carton',     unit:'kg',     min:10, max:50, step:1 },
-  { key:'discount_2',   label:'2-order discount',     desc:'% discount for 2 pooled orders',  unit:'%',      min:0, max:30, step:1 },
-  { key:'discount_3to5',label:'3-5 order discount',   desc:'% discount for 3–5 pooled orders',unit:'%',     min:0, max:50, step:1 },
-  { key:'express_premium',label:'Express premium',   desc:'% markup for express delivery',   unit:'%',      min:0, max:100, step:5 },
-  { key:'notif_prepare',label:'Prepare notification', desc:'Minutes before pickup — prepare', unit:'min',   min:10, max:120, step:5 },
-  { key:'notif_coming', label:'Driver coming alert',  desc:'Minutes before arrival — alert',  unit:'min',   min:5, max:60, step:1 },
+const VAR_DEFS=[
+  {key:'safe_util',label:'Safe utilization',desc:'Target load ratio (0.9 = 90%)',unit:'ratio',min:.5,max:1,step:.01},
+  {key:'adj_upper',label:'Adjustment ceiling',desc:'Max before upgrade trigger',unit:'ratio',min:1,max:1.5,step:.01},
+  {key:'overflow_bestfit',label:'Best-fit threshold',desc:'Remove order if overflow ≤',unit:'ratio',min:.05,max:.3,step:.01},
+  {key:'overflow_upgrade',label:'Upgrade threshold',desc:'Upgrade vehicle if overflow >',unit:'ratio',min:.1,max:.5,step:.01},
+  {key:'cap_bike',label:'Bike capacity',desc:'Max load for bike',unit:'kg',min:5,max:50,step:1},
+  {key:'cap_3w',label:'3W capacity',desc:'Max load for 3-wheeler',unit:'kg',min:50,max:500,step:10},
+  {key:'cap_4w',label:'4W capacity',desc:'Max load for 4-wheeler',unit:'kg',min:200,max:2000,step:50},
+  {key:'max_time_bike',label:'Bike time window',desc:'Max pooling time for bike',unit:'min',min:5,max:60,step:1},
+  {key:'max_time_3w',label:'3W time window',desc:'Max pooling time for 3W',unit:'min',min:10,max:120,step:5},
+  {key:'max_time_4w',label:'4W time window',desc:'Max pooling time for 4W',unit:'min',min:15,max:180,step:5},
+  {key:'w_small',label:'Small box weight',desc:'Average kg per small carton',unit:'kg',min:1,max:15,step:.5},
+  {key:'w_medium',label:'Medium box weight',desc:'Average kg per medium carton',unit:'kg',min:5,max:25,step:.5},
+  {key:'w_large',label:'Large box weight',desc:'Average kg per large carton',unit:'kg',min:10,max:50,step:1},
+  {key:'discount_2',label:'2-order discount',desc:'% discount for 2 pooled orders',unit:'%',min:0,max:30,step:1},
+  {key:'discount_3to5',label:'3-5 order discount',desc:'% discount for 3–5 pooled orders',unit:'%',min:0,max:50,step:1},
+  {key:'express_premium',label:'Express premium',desc:'% markup for express delivery',unit:'%',min:0,max:100,step:5},
+  {key:'notif_prepare',label:'Prepare notification',desc:'Minutes before pickup — prepare alert',unit:'min',min:10,max:120,step:5},
+  {key:'notif_coming',label:'Driver coming alert',desc:'Minutes before arrival — driver alert',unit:'min',min:5,max:60,step:1},
 ];
 
-function renderVarGrid() {
-  const grid = document.getElementById('varGrid');
-  grid.innerHTML = VAR_DEFS.map(v => `
-    <div class="var-item">
-      <div class="var-name">${v.key.toUpperCase()}</div>
-      <div class="var-desc">${v.desc}</div>
-      <input class="var-input" type="number" data-cfg="${v.key}"
-        value="${CFG[v.key]}" min="${v.min}" max="${v.max}" step="${v.step}"
-        oninput="CFG['${v.key}']=parseFloat(this.value)||0;markUnsaved();recalcAll()"/>
-      <div class="var-unit">${v.label} · ${v.unit}</div>
-    </div>
-  `).join('');
+function renderVarGrid(){
+  document.getElementById('varGrid').innerHTML=VAR_DEFS.map(v=>`
+    <div class="varitem">
+      <div class="vname">${v.key.toUpperCase()}</div>
+      <div class="vdesc">${v.desc}</div>
+      <input class="vinp" type="number" data-cfg="${v.key}" value="${CFG[v.key]}" min="${v.min}" max="${v.max}" step="${v.step}" oninput="CFG['${v.key}']=parseFloat(this.value)||0;markUnsaved();recalcAll()"/>
+      <div class="vunit">${v.label} · ${v.unit}</div>
+    </div>`).join('');
 }
 
-// ── VEHICLE GRID ──
-function renderVehicleGrid() {
-  const veh = [
-    { icon:'🛵', name:'Bike', key:'bike', color:'var(--gold)' },
-    { icon:'🛺', name:'3-Wheeler', key:'3w', color:'var(--cyan)' },
-    { icon:'🚚', name:'4-Wheeler', key:'4w', color:'var(--green)' },
-  ];
-  document.getElementById('vehicleGrid').innerHTML = veh.map(v => {
-    const cap = CFG['cap_'+v.key];
-    const safe = Math.round(CFG.safe_util * cap);
-    const pct = Math.round(CFG.safe_util * 100);
-    return `<div class="v-card">
-      <div class="v-icon">${v.icon}</div>
-      <div class="v-name">${v.name}</div>
-      <div class="v-cap" style="color:${v.color}">${cap} kg</div>
-      <div class="v-bar-wrap"><div class="v-bar" style="width:${pct}%;background:${v.color}"></div></div>
-      <div class="v-stat">
-        <span>Safe target</span>
-        <span class="v-safe" style="color:${v.color}">${safe} kg (${pct}%)</span>
-      </div>
+function renderVehicleGrid(){
+  const veh=[{icon:'🛵',name:'Bike',key:'bike',c:'#FF5C00'},{icon:'🛺',name:'3-Wheeler',key:'3w',c:'#6C2BD9'},{icon:'🚚',name:'4-Wheeler',key:'4w',c:'#0284C7'}];
+  document.getElementById('vehicleGrid').innerHTML=veh.map(v=>{
+    const cap=CFG['cap_'+v.key],safe=Math.round(CFG.safe_util*cap),pct=Math.round(CFG.safe_util*100);
+    return `<div class="vc" style="background:${v.c}">
+      <span class="vc-icon">${v.icon}</span>
+      <div class="vc-name">${v.name}</div>
+      <div class="vc-cap">${cap} kg</div>
+      <div class="vc-bar-bg"><div class="vc-bar" style="width:${pct}%"></div></div>
+      <div class="vc-stat"><span>Safe target</span><span>${safe} kg (${pct}%)</span></div>
     </div>`;
   }).join('');
 }
 
-// ── LOAD ZONE LABELS ──
-function renderLoadZones() {
-  const C = CFG.cap_3w;
-  const safe = Math.round(CFG.safe_util * C);
-  const adj = Math.round(CFG.adj_upper * C);
-  document.getElementById('sz-formula').textContent = `W ≤ ${CFG.safe_util}C`;
-  document.getElementById('sz-example').textContent = `e.g. W ≤ ${safe} kg for 3W`;
-  document.getElementById('az-formula').textContent = `${CFG.safe_util}C < W ≤ ${CFG.adj_upper}C`;
-  document.getElementById('az-example').textContent = `e.g. ${safe}–${adj} kg for 3W`;
-  document.getElementById('uz-formula').textContent = `W > ${CFG.adj_upper}C`;
-  document.getElementById('uz-example').textContent = `e.g. W > ${adj} kg for 3W`;
+function renderLoadZones(){
+  const C=CFG.cap_3w,safe=Math.round(CFG.safe_util*C),adj=Math.round(CFG.adj_upper*C);
+  document.getElementById('sz-f').textContent=`W ≤ ${CFG.safe_util}C`;
+  document.getElementById('sz-ex').textContent=`e.g. W ≤ ${safe} kg for 3W`;
+  document.getElementById('az-f').textContent=`${CFG.safe_util}C < W ≤ ${CFG.adj_upper}C`;
+  document.getElementById('az-ex').textContent=`e.g. ${safe}–${adj} kg for 3W`;
+  document.getElementById('uz-f').textContent=`W > ${CFG.adj_upper}C`;
+  document.getElementById('uz-ex').textContent=`e.g. W > ${adj} kg for 3W`;
 }
 
-// ── DISPATCH CONDITIONS ──
-function renderDispatchConditions() {
-  const safe3w = Math.round(CFG.safe_util * CFG.cap_3w);
-  document.getElementById('dispatch-cond1').textContent = `W ≥ ${CFG.safe_util}C (${safe3w} kg for 3W)`;
-  document.getElementById('dispatch-cond2').textContent = `T ≥ max_time window (${CFG.max_time_3w} min for 3W)`;
+function renderDispatch(){
+  document.getElementById('dc1').textContent=`W ≥ ${CFG.safe_util}C (${Math.round(CFG.safe_util*CFG.cap_3w)} kg for 3W)`;
+  document.getElementById('dc2').textContent=`T ≥ max_time (${CFG.max_time_3w} min for 3W)`;
 }
 
-// ── TIME ENGINE ──
-function renderTimeEngine() {
-  const rows = [
-    { v:'Bike',       min:5,  max:CFG.max_time_bike, color:'var(--gold)' },
-    { v:'3-Wheeler',  min:20, max:CFG.max_time_3w,   color:'var(--cyan)' },
-    { v:'4-Wheeler',  min:30, max:CFG.max_time_4w,   color:'var(--green)' },
-  ];
-  document.getElementById('timeEngineDisplay').innerHTML = rows.map(r => `
-    <div class="zs-row">
-      <div class="zs-label" style="color:${r.color};font-family:var(--font-m);font-size:11px">${r.v}</div>
-      <div class="zs-bar-wrap"><div class="zs-bar" style="width:${(r.max/60)*100}%;background:${r.color}"></div></div>
-      <div class="zs-pct" style="color:${r.color};font-family:var(--font-m);font-size:11px">${r.min}–${r.max}min</div>
-    </div>
-  `).join('');
+function renderTimeEngine(){
+  const rows=[{v:'Bike',min:5,max:CFG.max_time_bike,c:'#FF5C00'},{v:'3-Wheeler',min:20,max:CFG.max_time_3w,c:'#6C2BD9'},{v:'4-Wheeler',min:30,max:CFG.max_time_4w,c:'#0284C7'}];
+  document.getElementById('timeEngine').innerHTML=rows.map(r=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:2px solid var(--off);font-size:12px">
+      <div style="font-family:var(--fh);font-weight:800;color:${r.c};min-width:90px">${r.v}</div>
+      <div style="flex:1;height:6px;background:var(--off);border-radius:3px;overflow:hidden;border:1px solid #E2E4E9"><div style="height:100%;width:${(r.max/60)*100}%;background:${r.c};border-radius:3px"></div></div>
+      <div style="font-family:var(--fm);font-size:11px;color:${r.c};font-weight:700;min-width:70px;text-align:right">${r.min}–${r.max} min</div>
+    </div>`).join('');
 }
 
-// ── CARTON TABLE ──
-function renderCartonTable() {
-  const items = [
-    { size:'Small', key:'small', icon:'📦', wkey:'w_small' },
-    { size:'Medium', key:'medium', icon:'📦', wkey:'w_medium' },
-    { size:'Large', key:'large', icon:'📦', wkey:'w_large' },
-  ];
-  document.getElementById('cartonTable').innerHTML = items.map(i => `
-    <div class="zs-row" style="margin-bottom:4px">
-      <div style="font-family:var(--font-m);font-size:11px;color:var(--gold);min-width:60px">${i.size}</div>
-      <div style="font-size:11px;color:var(--text2);flex:1">${i.icon} ~${CFG[i.wkey]} kg each</div>
-      <div class="badge badge-gold">${CFG[i.wkey]} kg</div>
-    </div>
-  `).join('');
-
-  // Carton calc rows
-  document.getElementById('cartonCalcRows').innerHTML = items.map(i => `
-    <div class="calc-row">
-      <span class="calc-label">${i.size} boxes</span>
-      <input class="calc-input" type="number" value="0" min="0"
-        id="cc-${i.key}"
-        oninput="calcCartons()"/>
-      <span class="calc-unit">×${CFG[i.wkey]}kg</span>
-    </div>
-  `).join('');
+function renderCartonTable(){
+  const items=[{size:'Small box',key:'small',icon:'📦',wkey:'w_small'},{size:'Medium box',key:'medium',icon:'📦',wkey:'w_medium'},{size:'Large box',key:'large',icon:'📦',wkey:'w_large'}];
+  document.getElementById('cartonTbl').innerHTML=`<table class="carton-tbl">${items.map(i=>`<tr><td>${i.size}</td><td style="color:var(--ink3)">avg. ${CFG[i.wkey]} kg each</td><td><span style="background:#FFF3EE;color:var(--orange);font-family:var(--fm);font-size:11px;padding:3px 8px;border-radius:5px;font-weight:700;border:2px solid #FFD0BC">${CFG[i.wkey]} kg</span></td></tr>`).join('')}</table>`;
+  document.getElementById('cartonCalc').innerHTML=items.map(i=>`
+    <div class="calcrow">
+      <span class="calclbl">${i.size}s</span>
+      <input class="calcinp" type="number" value="0" min="0" id="cc-${i.key}" oninput="calcCartons()"/>
+      <span class="calcunit">×${CFG[i.wkey]}kg</span>
+    </div>`).join('');
 }
 
-// ── PRICING ──
-function renderPriceGrid() {
-  const items = [
-    {
-      type:'Smart Pool', color:'var(--green)', badge:'badge-green',
-      formula: `P = P_base × (1 − discount)`,
-      detail: `2 orders: ${CFG.discount_2}% off\n3–5 orders: ${CFG.discount_3to5}% off`,
-      discount: CFG.discount_3to5+'%'
-    },
-    {
-      type:'Express', color:'var(--amber)', badge:'badge-amber',
-      formula: `P = P_base × (1 + ${CFG.express_premium}%)`,
-      detail: `Priority pickup\nGuaranteed slot`,
-      discount: '+'+CFG.express_premium+'%'
-    },
-    {
-      type:'Standard', color:'var(--blue)', badge:'badge-cyan',
-      formula: `P = P_base`,
-      detail: `No pooling\nFixed rate`,
-      discount: '0%'
-    }
-  ];
-  document.getElementById('priceGrid').innerHTML = items.map(i => `
-    <div class="price-card">
-      <div class="price-type badge ${i.badge}">${i.type}</div>
-      <div class="price-formula">${i.formula}</div>
-      <div style="font-size:10px;color:var(--text2);font-family:var(--font-h);white-space:pre-line;margin:6px 0">${i.detail}</div>
-      <div class="price-discount" style="color:${i.color}">${i.discount}</div>
-    </div>
-  `).join('');
+function renderPriceGrid(){
+  document.getElementById('priceGrid').innerHTML=`
+    <div class="pcard"><div class="ptype" style="background:#F0FDF4;color:var(--green);border:2px solid #86EFAC">Smart Pool</div><div class="pformula">P = P_base × (1 − discount)</div><div style="font-size:11px;color:var(--ink3);line-height:1.6">2 orders: ${CFG.discount_2}% off<br>3–5 orders: ${CFG.discount_3to5}% off</div><div class="pdiscount" style="color:var(--green)">Up to ${CFG.discount_3to5}% off</div></div>
+    <div class="pcard"><div class="ptype" style="background:#FFFBEB;color:var(--amber);border:2px solid #FDE68A">Express</div><div class="pformula">P = P_base × (1 + ${CFG.express_premium}%)</div><div style="font-size:11px;color:var(--ink3);line-height:1.6">Priority pickup<br>Guaranteed slot</div><div class="pdiscount" style="color:var(--amber)">+${CFG.express_premium}%</div></div>
+    <div class="pcard"><div class="ptype" style="background:#EFF6FF;color:var(--sky);border:2px solid #BFDBFE">Standard</div><div class="pformula">P = P_base</div><div style="font-size:11px;color:var(--ink3);line-height:1.6">No pooling<br>Fixed rate</div><div class="pdiscount" style="color:var(--sky)">0% change</div></div>`;
 }
 
-// ── NOTIFICATION TIMELINE ──
-function renderNotifTimeline() {
-  const items = [
-    { time: `T−${CFG.notif_prepare}min`, label:'Prepare Goods', text:'Vehicle is being loaded. Please have your goods ready.', color:'var(--gold)', type:'PREPARE', tc:'badge-gold' },
-    { time: `T−${CFG.notif_coming}min`,  label:'Driver Coming', text:'Your driver is on the way. Be at the pickup point.', color:'var(--cyan)', type:'ALERT', tc:'badge-cyan' },
-    { time: `T+0`,                        label:'Pickup Complete', text:'Your goods have been collected. Delivery in progress.', color:'var(--green)', type:'DONE', tc:'badge-green' },
-  ];
-  document.getElementById('notifTimeline').innerHTML = items.map(i => `
-    <div class="nt-row">
-      <div class="nt-time">${i.time}</div>
-      <div class="nt-dot" style="background:${i.color}"></div>
-      <div class="nt-text"><strong style="color:var(--text);font-size:12px">${i.label}</strong><br>${i.text}</div>
-      <div class="nt-type badge ${i.tc}">${i.type}</div>
-    </div>
-  `).join('');
+function renderNotifTL(){
+  const rows=[{time:`T−${CFG.notif_prepare}min`,label:'Prepare Goods',text:'Vehicle is loading. Please have your goods ready at pickup point.',c:'#FF5C00',bc:'#FF5C00',type:'PREPARE'},{time:`T−${CFG.notif_coming}min`,label:'Driver Coming',text:'Your driver is on the way. Be at the pickup location.',c:'#0284C7',bc:'#0284C7',type:'ALERT'},{time:'T+0',label:'Pickup Complete',text:'Your goods have been collected. Delivery in progress.',c:'#16A34A',bc:'#16A34A',type:'DONE'}];
+  document.getElementById('notifTL').innerHTML=rows.map(r=>`<div class="ntrow" style="border-color:${r.c}20"><div class="nt-time" style="color:${r.c}">${r.time}</div><div class="nt-dot" style="background:${r.c}"></div><div class="nt-text"><strong>${r.label}</strong>${r.text}</div><div class="nt-badge" style="background:${r.bc}">${r.type}</div></div>`).join('');
 }
 
-// ── SYSTEM LOOP ──
-function renderSystemLoop() {
-  const steps = [
-    { label:'Collect orders', sub:'Businesses submit via geo-registration' },
-    { label:'Assign zone', sub:'Haversine → North/East/South/West' },
-    { label:'Pool orders', sub:'W = Σ(order weights)' },
-    { label:'Apply load logic', sub:'Safe → Adjust → Upgrade' },
-    { label:'Assign vehicle', sub:'W ≤ 200kg → 3W · W > 200kg → 4W' },
-    { label:'Pickup route', sub:'Center → Outward (sorted ASC)' },
-    { label:'Delivery route', sub:'Outward → Inward (sorted DESC)' },
-    { label:'Repeat', sub:'Continuous flow loop' },
-  ];
-  document.getElementById('systemLoop').innerHTML = steps.map((s,i) => `
-    <div class="loop-step">
-      <div class="ls-num">${i+1}</div>
-      <div>
-        <div class="ls-text">${s.label}</div>
-        <div class="ls-sub">${s.sub}</div>
-      </div>
-      ${i<steps.length-1?'<div class="ls-arrow">↓</div>':''}
-    </div>
-  `).join('');
+function renderSystemLoop(){
+  const steps=[{l:'Collect orders',s:'Businesses submit via geo-registration'},{l:'Assign zone',s:'Haversine → North / East / South / West'},{l:'Pool orders',s:'W = Σ(order weights)'},{l:'Apply load logic',s:'Safe → Adjust → Upgrade'},{l:'Assign vehicle',s:'W ≤ 200kg → 3W · W > 200kg → 4W'},{l:'Pickup route',s:'Center → Outward (sorted ASC)'},{l:'Delivery route',s:'Outward → Inward (sorted DESC)'},{l:'Repeat',s:'Continuous flow loop'}];
+  document.getElementById('systemLoop').innerHTML=steps.map((s,i)=>`<div class="ls"><div class="ls-num">${i+1}</div><div><div class="ls-text">${s.l}</div><div class="ls-sub">${s.s}</div></div></div>`).join('');
 }
 
-// ══ LIVE CALCULATORS ══
-
-function calcLoad() {
-  const W = parseFloat(document.getElementById('lc-weight').value) || 0;
-  const vtype = document.getElementById('lc-vehicle').value;
-  const C = vtype==='bike'?CFG.cap_bike : vtype==='3w'?CFG.cap_3w : CFG.cap_4w;
-  const safe = CFG.safe_util * C;
-  const adj = CFG.adj_upper * C;
-  const el = document.getElementById('loadResult');
-  const pct = Math.round((W/C)*100);
-  if (W <= safe) {
-    el.className='calc-result safe';
-    el.innerHTML=`<div class="result-dot" style="background:var(--green)"></div>Safe Zone — ${W}kg / ${C}kg (${pct}%) · Keep pooling`;
-  } else if (W <= adj) {
-    el.className='calc-result warn';
-    const overflow = W - C;
-    el.innerHTML=`<div class="result-dot" style="background:var(--amber)"></div>Adjustment Zone — Overflow ${overflow.toFixed(1)}kg · Apply best-fit removal`;
-  } else {
-    el.className='calc-result danger';
-    el.innerHTML=`<div class="result-dot" style="background:var(--red)"></div>Upgrade Zone — ${W}kg exceeds ${C}kg + ${Math.round(CFG.adj_upper*100)}% buffer · Upgrade vehicle`;
-  }
+// CALCULATORS
+function calcLoad(){
+  const W=parseFloat(document.getElementById('lc-w').value)||0,vt=document.getElementById('lc-v').value;
+  const C=vt==='bike'?CFG.cap_bike:vt==='3w'?CFG.cap_3w:CFG.cap_4w;
+  const safe=CFG.safe_util*C,adj=CFG.adj_upper*C,pct=Math.round((W/C)*100);
+  const el=document.getElementById('loadRes');
+  if(W<=safe){el.className='calcres safe';el.innerHTML=`<div class="resdot" style="background:var(--green)"></div>Safe Zone — ${W}kg / ${C}kg (${pct}%) · Keep pooling orders`;}
+  else if(W<=adj){el.className='calcres warn';el.innerHTML=`<div class="resdot" style="background:var(--amber)"></div>Adjustment Zone — Overflow ${(W-C).toFixed(1)}kg · Apply best-fit removal`;}
+  else{el.className='calcres danger';el.innerHTML=`<div class="resdot" style="background:var(--rose)"></div>Upgrade Zone — ${W}kg exceeds ${C}kg + buffer · Upgrade vehicle immediately`;}
 }
 
-function calcDispatch() {
-  const W = parseFloat(document.getElementById('dt-weight').value) || 0;
-  const T = parseFloat(document.getElementById('dt-time').value) || 0;
-  const C = CFG.cap_3w;
-  const safe = CFG.safe_util * C;
-  const maxT = CFG.max_time_3w;
-  const el = document.getElementById('dispatchResult');
-  const weightReady = W >= safe;
-  const timeExpired = T >= maxT;
-  if (weightReady && timeExpired) {
-    el.className='calc-result danger';
-    el.innerHTML=`<div class="result-dot" style="background:var(--red)"></div>DISPATCH NOW — Both weight (${W}kg ≥ ${Math.round(safe)}kg) AND time (${T}min ≥ ${maxT}min) exceeded`;
-  } else if (weightReady) {
-    el.className='calc-result safe';
-    el.innerHTML=`<div class="result-dot" style="background:var(--green)"></div>DISPATCH — Weight threshold met (${W}kg ≥ ${Math.round(safe)}kg)`;
-  } else if (timeExpired) {
-    el.className='calc-result warn';
-    el.innerHTML=`<div class="result-dot" style="background:var(--amber)"></div>DISPATCH — Time window expired (${T}min ≥ ${maxT}min) · Only ${W}kg loaded`;
-  } else {
-    const remW = Math.round(safe - W);
-    const remT = maxT - T;
-    el.className='calc-result info';
-    el.innerHTML=`<div class="result-dot" style="background:var(--blue)"></div>Keep pooling — Need ${remW}kg more OR wait ${remT}min`;
-  }
+function calcDispatch(){
+  const W=parseFloat(document.getElementById('dt-w').value)||0,T=parseFloat(document.getElementById('dt-t').value)||0;
+  const safe=CFG.safe_util*CFG.cap_3w,maxT=CFG.max_time_3w;
+  const wOk=W>=safe,tOk=T>=maxT,el=document.getElementById('dispatchRes');
+  if(wOk&&tOk){el.className='calcres danger';el.innerHTML=`<div class="resdot" style="background:var(--rose)"></div>DISPATCH NOW — Both weight AND time thresholds exceeded`;}
+  else if(wOk){el.className='calcres safe';el.innerHTML=`<div class="resdot" style="background:var(--green)"></div>DISPATCH — Weight threshold met (${W}kg ≥ ${Math.round(safe)}kg)`;}
+  else if(tOk){el.className='calcres warn';el.innerHTML=`<div class="resdot" style="background:var(--amber)"></div>DISPATCH — Time window expired (${T}min ≥ ${maxT}min)`;}
+  else{el.className='calcres info';el.innerHTML=`<div class="resdot" style="background:var(--sky)"></div>Keep pooling — Need ${Math.round(safe-W)}kg more OR wait ${maxT-T}min more`;}
 }
 
-let poolOrderList = [];
-function addPoolOrder() {
-  const w = parseFloat(document.getElementById('new-order-weight').value);
-  if (!w || w <= 0) return;
+function addPoolOrder(){
+  const w=parseFloat(document.getElementById('new-order-w').value);
+  if(!w||w<=0)return;
   poolOrderList.push(w);
-  document.getElementById('new-order-weight').value = '';
+  document.getElementById('new-order-w').value='';
   renderPoolOrders();
 }
-function clearPoolOrders() { poolOrderList = []; renderPoolOrders(); }
-function renderPoolOrders() {
-  const C = CFG.cap_3w;
-  const safe = CFG.safe_util * C;
-  const W = poolOrderList.reduce((a,b)=>a+b, 0);
-  const el = document.getElementById('poolOrders');
-  el.innerHTML = poolOrderList.length ? poolOrderList.map((w,i) => `
-    <div class="zs-row" style="margin-bottom:3px">
-      <div style="font-family:var(--font-m);font-size:10px;color:var(--text2);min-width:22px">#${i+1}</div>
-      <div style="flex:1;font-family:var(--font-m);font-size:11px">${w}kg</div>
-      <div class="zs-bar-wrap"><div class="zs-bar" style="width:${Math.min((w/C)*100,100)}%;background:var(--gold)"></div></div>
-      <button onclick="poolOrderList.splice(${i},1);renderPoolOrders()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px">✕</button>
-    </div>
-  `).join('') : '<div style="font-size:11px;color:var(--text3);padding:4px 0">No orders added yet</div>';
-  const res = document.getElementById('poolResult');
-  if (!poolOrderList.length) { res.className='calc-result info'; res.innerHTML='<div class="result-dot" style="background:var(--blue)"></div>No orders yet'; return; }
-  const pct = Math.round((W/C)*100);
-  if (W <= safe) {
-    res.className='calc-result safe';
-    res.innerHTML=`<div class="result-dot" style="background:var(--green)"></div>W = ${W}kg / ${C}kg (${pct}%) — Safe · Keep adding`;
-  } else if (W <= CFG.adj_upper*C) {
-    const overflow = W-C;
-    res.className='calc-result warn';
-    res.innerHTML=`<div class="result-dot" style="background:var(--amber)"></div>W = ${W}kg — Overflow ${overflow.toFixed(1)}kg · Remove best-fit order`;
+function clearPoolOrders(){poolOrderList=[];renderPoolOrders();}
+function renderPoolOrders(){
+  const C=CFG.cap_3w,safe=CFG.safe_util*C,W=poolOrderList.reduce((a,b)=>a+b,0);
+  document.getElementById('poolList').innerHTML=poolOrderList.length?poolOrderList.map((w,i)=>`<div class="pool-row"><span class="pool-num">#${i+1}</span><span style="flex:1;font-family:var(--fm);font-size:11px;font-weight:600">${w}kg</span><div style="flex:1;height:5px;background:var(--off);border-radius:3px;border:1px solid #E2E4E9;overflow:hidden"><div style="height:100%;width:${Math.min((w/C)*100,100)}%;background:var(--orange);border-radius:3px"></div></div><button class="pool-rm" onclick="poolOrderList.splice(${i},1);renderPoolOrders()">✕</button></div>`).join(''):'<div style="font-size:11px;color:var(--ink3);padding:4px 0;font-weight:600">No orders added yet</div>';
+  const res=document.getElementById('poolRes');
+  if(!poolOrderList.length){res.className='calcres info';res.innerHTML='<div class="resdot" style="background:var(--sky)"></div>Add orders above to simulate';return;}
+  const pct=Math.round((W/C)*100);
+  if(W<=safe){res.className='calcres safe';res.innerHTML=`<div class="resdot" style="background:var(--green)"></div>W = ${W}kg / ${C}kg (${pct}%) — Safe Zone · Keep adding`;}
+  else if(W<=CFG.adj_upper*C){res.className='calcres warn';res.innerHTML=`<div class="resdot" style="background:var(--amber)"></div>W = ${W}kg — Overflow ${(W-C).toFixed(1)}kg · Remove best-fit order`;}
+  else{res.className='calcres danger';res.innerHTML=`<div class="resdot" style="background:var(--rose)"></div>W = ${W}kg — Critical overflow · Upgrade to 4-Wheeler`;}
+}
+
+function calcCartons(){
+  const s=parseInt(document.getElementById('cc-small')?.value||0)||0;
+  const m=parseInt(document.getElementById('cc-medium')?.value||0)||0;
+  const l=parseInt(document.getElementById('cc-large')?.value||0)||0;
+  const W=s*CFG.w_small+m*CFG.w_medium+l*CFG.w_large;
+  const C=CFG.cap_3w,safe=CFG.safe_util*C,veh=W<=200?'3W':W<=500?'4W':'Multiple 4W';
+  const el=document.getElementById('cartonRes');
+  if(!s&&!m&&!l){el.className='calcres info';el.innerHTML='<div class="resdot" style="background:var(--sky)"></div>Enter carton counts above';return;}
+  const pct=Math.round((W/C)*100);
+  if(W<=safe){el.className='calcres safe';el.innerHTML=`<div class="resdot" style="background:var(--green)"></div>~${W}kg estimated · ${pct}% of 3W capacity · Assign: ${veh}`;}
+  else if(W<=CFG.adj_upper*C){el.className='calcres warn';el.innerHTML=`<div class="resdot" style="background:var(--amber)"></div>~${W}kg estimated · Adjustment zone · Assign: ${veh}`;}
+  else{el.className='calcres danger';el.innerHTML=`<div class="resdot" style="background:var(--rose)"></div>~${W}kg estimated · Upgrade required · Assign: ${veh}`;}
+}
+
+function calcEfficiency(){
+  const load=parseFloat(document.getElementById('re-load').value)||0,dist=parseFloat(document.getElementById('re-dist').value)||1;
+  const eff=(load/dist).toFixed(1),el=document.getElementById('effRes');
+  if(eff>=20){el.className='calcres safe';el.innerHTML=`<div class="resdot" style="background:var(--green)"></div>Efficiency = ${eff} kg/km — Excellent route utilization`;}
+  else if(eff>=10){el.className='calcres warn';el.innerHTML=`<div class="resdot" style="background:var(--amber)"></div>Efficiency = ${eff} kg/km — Good, can improve with more pickups`;}
+  else{el.className='calcres danger';el.innerHTML=`<div class="resdot" style="background:var(--rose)"></div>Efficiency = ${eff} kg/km — Low · Add more stops or consolidate route`;}
+}
+
+function calcPrice(){
+  const base=parseFloat(document.getElementById('pc-base').value)||100;
+  const orders=parseInt(document.getElementById('pc-orders').value)||1;
+  const type=document.getElementById('pc-type').value,el=document.getElementById('priceRes');
+  if(type==='express'){
+    const price=Math.round(base*(1+CFG.express_premium/100));
+    el.className='calcres warn';el.innerHTML=`<div class="resdot" style="background:var(--amber)"></div>Express price: ₹${price} per order (base ₹${base} + ${CFG.express_premium}% premium)`;
   } else {
-    res.className='calc-result danger';
-    res.innerHTML=`<div class="result-dot" style="background:var(--red)"></div>W = ${W}kg — Critical overflow · Upgrade to 4W`;
+    const disc=orders<=1?0:orders===2?CFG.discount_2:CFG.discount_3to5;
+    const price=Math.round(base*(1-disc/100));
+    el.className=disc>0?'calcres safe':'calcres info';
+    el.innerHTML=`<div class="resdot" style="background:${disc>0?'var(--green)':'var(--sky)'}"></div>Smart Pool price: ₹${price} per order (${disc}% discount for ${orders} order${orders!==1?'s':''})`;
   }
 }
 
-function calcCartons() {
-  const small = parseInt(document.getElementById('cc-small')?.value||0)||0;
-  const medium = parseInt(document.getElementById('cc-medium')?.value||0)||0;
-  const large = parseInt(document.getElementById('cc-large')?.value||0)||0;
-  const W = small*CFG.w_small + medium*CFG.w_medium + large*CFG.w_large;
-  const C = CFG.cap_3w;
-  const safe = CFG.safe_util * C;
-  const el = document.getElementById('cartonResult');
-  if (!small && !medium && !large) {
-    el.className='calc-result info';
-    el.innerHTML='<div class="result-dot" style="background:var(--blue)"></div>Enter carton counts above';
-    return;
-  }
-  const pct = Math.round((W/C)*100);
-  const veh = W<=200?'3W':W<=500?'4W':'Multiple 4W';
-  if (W <= safe) {
-    el.className='calc-result safe';
-    el.innerHTML=`<div class="result-dot" style="background:var(--green)"></div>~${W}kg estimated · ${pct}% of 3W · Vehicle: ${veh}`;
-  } else if (W <= CFG.adj_upper*C) {
-    el.className='calc-result warn';
-    el.innerHTML=`<div class="result-dot" style="background:var(--amber)"></div>~${W}kg estimated · Adjustment zone · Vehicle: ${veh}`;
-  } else {
-    el.className='calc-result danger';
-    el.innerHTML=`<div class="result-dot" style="background:var(--red)"></div>~${W}kg estimated · Upgrade required · Vehicle: ${veh}`;
-  }
+function recalcAll(){
+  renderVehicleGrid();renderLoadZones();renderDispatch();renderTimeEngine();renderCartonTable();renderPriceGrid();renderNotifTL();
+  calcLoad();calcDispatch();calcCartons();calcEfficiency();calcPrice();renderPoolOrders();
 }
-
-function calcEfficiency() {
-  const load = parseFloat(document.getElementById('re-load').value) || 0;
-  const dist = parseFloat(document.getElementById('re-dist').value) || 1;
-  const eff = (load / dist).toFixed(1);
-  const el = document.getElementById('efficiencyResult');
-  const grade = eff >= 20 ? ['safe','Excellent','var(--green)'] : eff >= 10 ? ['warn','Good','var(--amber)'] : ['danger','Low — optimize route','var(--red)'];
-  el.className = 'calc-result ' + grade[0];
-  el.innerHTML = `<div class="result-dot" style="background:${grade[2]}"></div>Efficiency = ${eff} kg/km · ${grade[1]}`;
+function renderAll(){
+  renderVarGrid();recalcAll();renderSystemLoop();
 }
+loadCFG();renderAll();
 
-function calcPrice() {
-  const base = parseFloat(document.getElementById('pc-base').value) || 100;
-  const orders = parseInt(document.getElementById('pc-orders').value) || 1;
-  const type = document.getElementById('pc-type').value;
-  const el = document.getElementById('priceResult');
-  let price, label;
-  if (type === 'express') {
-    price = base * (1 + CFG.express_premium/100);
-    label = `Express — ₹${price.toFixed(0)} (base ₹${base} + ${CFG.express_premium}% premium)`;
-    el.className = 'calc-result warn';
-    el.innerHTML = `<div class="result-dot" style="background:var(--amber)"></div>${label}`;
-  } else {
-    const discount = orders <= 1 ? 0 : orders === 2 ? CFG.discount_2 : CFG.discount_3to5;
-    price = base * (1 - discount/100);
-    label = `Smart Pool — ₹${price.toFixed(0)} per order (${discount}% discount for ${orders} orders)`;
-    el.className = discount > 0 ? 'calc-result safe' : 'calc-result info';
-    el.innerHTML = `<div class="result-dot" style="background:${discount>0?'var(--green)':'var(--blue)'}"></div>${label}`;
-  }
-}
-
-function recalcAll() {
-  renderVehicleGrid();
-  renderLoadZones();
-  renderDispatchConditions();
-  renderTimeEngine();
-  renderCartonTable();
-  renderPriceGrid();
-  renderNotifTimeline();
-  calcLoad();
-  calcDispatch();
-  calcCartons();
-  calcEfficiency();
-  calcPrice();
-  renderPoolOrders();
-}
-
-function renderAll() {
-  renderVarGrid();
-  renderVehicleGrid();
-  renderLoadZones();
-  renderDispatchConditions();
-  renderTimeEngine();
-  renderCartonTable();
-  renderPriceGrid();
-  renderNotifTimeline();
-  renderSystemLoop();
-  recalcAll();
-}
-
-// INIT
-loadCFG();
-renderAll();
+});
 </script>
+
 </body>
 </html>
