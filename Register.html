@@ -1,12 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+const CENTER={lat:26.2389,lng:73.0243};
+const ZONE_META={
+  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',vehicles:['VH-N01']},
+  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',vehicles:['VH-E01']},
+  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',vehicles:['VH-S01']},
+  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706',vehicles:['VH-W01']}
+};
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function getZone(lat,lng){
+  const dLat=lat-CENTER.lat,dLng=lng-CENTER.lng;
+  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
+}
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+function zonePickups(zone){return loadPickups().filter(p=>p.zone===zone).sort((a,b)=>a.dist-b.dist);}
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Register Your Business — Navadhar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--white:#fff;--off:#F8F9FC;--ink:#0A0A14;--ink2:#3D3D55;--ink3:#8888A0;--orange:#FF5C00;--violet:#6C2BD9;--green:#16A34A;--fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif}
@@ -161,9 +184,11 @@ select option{background:white}
     </div>
   </div>
 </div>
-<script src="_shared.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
 <script>
+window.addEventListener('load', function(){
+
 const ZM=ZONE_META;
 let rLat=null,rLng=null,rMap=null,rMarker=null;
 function initMap(){
@@ -238,6 +263,9 @@ function renderList(){
 }
 function showMsg(txt,type){const el=document.getElementById('msg');el.textContent=txt;el.className='msg show '+type;setTimeout(()=>el.classList.remove('show'),5000);}
 initMap();renderList();
+
+});
 </script>
+
 </body>
 </html>
