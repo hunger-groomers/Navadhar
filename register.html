@@ -21,21 +21,17 @@ body{font-family:'DM Sans',sans-serif;background:#F8F9FC;color:#0A0A14;min-heigh
 a.nb{font-size:12px;padding:6px 13px;border-radius:7px;border:2px solid var(--ink);background:#fff;color:var(--ink);text-decoration:none;font-family:'Syne',sans-serif;font-weight:700;transition:all .15s}
 a.nb:hover{background:var(--ink);color:#fff}
 
-/* STEPS */
 .steps{background:#fff;border-bottom:2px solid #E2E4E9;padding:14px 28px;display:flex;align-items:center}
 .si{display:flex;align-items:center;gap:7px;font-size:11px;font-family:'Syne',sans-serif;font-weight:700;color:#C0C4CC}
-.si.active{color:var(--or)}
-.si.done{color:var(--gr)}
+.si.active{color:var(--or)}.si.done{color:var(--gr)}
 .sn{width:24px;height:24px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;background:#fff}
 .si.done .sn{background:var(--gr);color:#fff;border-color:var(--gr)}
 .sl{flex:1;height:2px;background:#E2E4E9;margin:0 8px}
 .sl.done{background:var(--gr)}
 
-/* SCREENS */
 .screen{display:none;max-width:1040px;margin:0 auto;padding:32px 24px}
 .screen.active{display:block}
 
-/* AUTH CARD */
 .auth-wrap{max-width:440px;margin:0 auto}
 .auth-card{background:#fff;border:2px solid var(--ink);border-radius:18px;padding:36px;text-align:center}
 .auth-icon{width:60px;height:60px;border-radius:14px;background:#FFF3EE;border:2px solid var(--or);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px}
@@ -59,7 +55,6 @@ a.nb:hover{background:var(--ink);color:#fff}
 .resend{margin-top:8px;font-size:12px;color:#8888A0}
 .resend b{color:var(--or);cursor:pointer;text-decoration:underline}
 
-/* FORM + MAP */
 .eyebrow{font-size:11px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--or);margin-bottom:5px}
 .heading{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--ink);margin-bottom:5px}
 .subhead{font-size:13px;color:#8888A0;line-height:1.65;margin-bottom:22px;max-width:500px}
@@ -75,7 +70,6 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
 .r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .vbadge{display:inline-flex;align-items:center;gap:5px;background:#F0FDF4;color:var(--gr);border:2px solid #86EFAC;border-radius:7px;padding:4px 10px;font-size:11px;font-family:'Syne',sans-serif;font-weight:800;margin-bottom:12px}
 
-/* LOCATION */
 .loc-box{background:var(--off);border:2px solid #E2E4E9;border-radius:11px;padding:14px;margin-bottom:12px}
 .lbt{font-family:'Syne',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#8888A0;margin-bottom:10px}
 #gps-btn{display:block;width:100%;padding:11px;margin-bottom:7px;background:var(--ink);color:#fff;border:2px solid var(--ink);border-radius:8px;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;cursor:pointer;text-align:center;transition:all .15s}
@@ -100,8 +94,8 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
 .fmsg.show{display:block}
 .fmsg.ok{background:#F0FDF4;color:var(--gr);border:2px solid #86EFAC}
 .fmsg.err{background:#FEF2F2;color:var(--re);border:2px solid #FCA5A5}
+.fmsg.warn{background:#FFFBEB;color:var(--am);border:2px solid #FDE68A}
 
-/* MAP */
 .map-card{background:#fff;border:2px solid var(--ink);border-radius:16px;overflow:hidden}
 .mh{padding:12px 16px;border-bottom:2px solid var(--off);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px}
 .mht{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--ink)}
@@ -111,20 +105,60 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
 .ml{display:flex;align-items:center;gap:4px;font-size:10px;color:#8888A0;font-weight:700}
 .mld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
-/* QR SUCCESS */
-.sov{display:none;position:fixed;inset:0;background:rgba(10,10,20,.92);z-index:9999;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+/* ── SUCCESS OVERLAY ── */
+.sov{display:none;position:fixed;inset:0;background:rgba(10,10,20,.92);z-index:9999;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
 .sov.show{display:flex}
-.sbox{background:#fff;border:3px solid var(--ink);border-radius:20px;padding:36px;max-width:460px;width:100%;text-align:center}
+.sbox{background:#fff;border:3px solid var(--ink);border-radius:20px;padding:32px;max-width:500px;width:100%;text-align:center;margin:auto}
 .sicon{width:56px;height:56px;border-radius:50%;background:var(--gr);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;color:#fff;font-weight:800}
 .stitle{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--ink);margin-bottom:4px}
-.ssub{font-size:12px;color:#8888A0;margin-bottom:16px;line-height:1.5}
+.ssub2{font-size:12px;color:#8888A0;margin-bottom:16px;line-height:1.5}
 .biz-id-box{background:var(--off);border:2px solid var(--ink);border-radius:10px;padding:14px;margin-bottom:16px}
 .biz-id-label{font-size:10px;font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#8888A0;margin-bottom:4px}
 .biz-id-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--or)}
 .biz-id-zone{font-size:11px;font-family:'Syne',sans-serif;font-weight:800;padding:3px 10px;border-radius:5px;display:inline-block;margin-top:4px;border:1px solid}
-#qr-container{display:flex;justify-content:center;margin-bottom:16px}
+#qr-container{display:flex;justify-content:center;margin-bottom:14px}
 #qr-container canvas,#qr-container img{border:2px solid var(--ink);border-radius:10px;padding:8px;background:#fff}
-.qr-hint{font-size:11px;color:#8888A0;margin-bottom:18px;line-height:1.5}
+.qr-hint{font-size:11px;color:#8888A0;margin-bottom:16px;line-height:1.5}
+
+/* ── SEND VERIFICATION SECTION ── */
+.send-verify-box{border:2px solid var(--ink);border-radius:14px;overflow:hidden;margin-bottom:16px;text-align:left}
+.svb-header{background:var(--ink);padding:11px 16px}
+.svb-header-title{font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff}
+.svb-header-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.svb-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+
+.email-row{margin-bottom:2px}
+.email-row input{width:100%;padding:9px 12px;border:2px solid #E2E4E9;border-radius:8px;font-size:13px;color:var(--ink);background:var(--off);font-family:'DM Sans',sans-serif;outline:none;transition:border .15s}
+.email-row input:focus{border-color:var(--sk);background:#fff}
+.email-row input::placeholder{color:#C0C4CC}
+.email-row-label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8888A0;margin-bottom:5px}
+
+/* channel buttons */
+.ch-btn{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:2px solid;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;cursor:pointer;transition:all .2s;width:100%;text-align:left;position:relative;overflow:hidden}
+.ch-btn .ch-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:transform .2s}
+.ch-btn:hover .ch-icon{transform:scale(1.1)}
+.ch-btn .ch-text{flex:1}
+.ch-btn .ch-label{font-size:12px;font-weight:800;display:block}
+.ch-btn .ch-desc{font-size:10px;font-weight:600;opacity:.65;display:block;margin-top:1px}
+.ch-btn .ch-arrow{font-size:14px;flex-shrink:0;transition:transform .15s}
+.ch-btn:hover .ch-arrow{transform:translateX(3px)}
+.ch-btn.wa{background:#F0FDF4;border-color:#86EFAC;color:#15803D}
+.ch-btn.wa .ch-icon{background:#25D366;color:#fff}
+.ch-btn.wa:hover{background:#DCFCE7;border-color:#4ADE80}
+.ch-btn.em{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8}
+.ch-btn.em .ch-icon{background:#2563EB;color:#fff}
+.ch-btn.em:hover{background:#DBEAFE;border-color:#93C5FD}
+/* sent state */
+.ch-btn.sent{cursor:default}
+.ch-btn.wa.sent{background:#DCFCE7;border-color:var(--gr)}
+.ch-btn.em.sent{background:#DBEAFE;border-color:#3B82F6}
+.sent-badge{display:none;background:var(--gr);color:#fff;font-size:10px;font-family:'Syne',sans-serif;font-weight:800;padding:2px 8px;border-radius:5px;margin-left:auto;flex-shrink:0}
+.ch-btn.sent .sent-badge{display:block}
+.ch-btn.sent .ch-arrow{display:none}
+
+.svb-note{font-size:11px;color:#8888A0;line-height:1.6;padding:9px 11px;background:var(--off);border-radius:7px;border:1px solid #E2E4E9}
+.svb-note b{color:var(--ink)}
+
 .sbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .sbtn{padding:10px 18px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;cursor:pointer;border:2px solid;transition:all .15s;text-decoration:none;display:inline-block}
 
@@ -193,14 +227,15 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
   <div class="two-col">
     <div class="fc">
       <div class="fct"><div class="obar"></div>Business Details</div>
-
-      <div class="vbadge">✓ Phone Verified: <span id="verified-phone"></span></div>
+      <div class="vbadge">&#10003; Phone Verified: <span id="verified-phone"></span></div>
 
       <div class="field"><label>Business / Shop Name *</label><input class="fi" type="text" id="f-biz" placeholder="e.g. Sharma Textiles" maxlength="60"/></div>
       <div class="r2">
         <div class="field"><label>Owner Name</label><input class="fi" type="text" id="f-owner" placeholder="Ramesh Sharma" maxlength="40"/></div>
         <div class="field"><label>WhatsApp</label><input class="fi" type="tel" id="f-wa" placeholder="+91 98765 43210" maxlength="20"/></div>
       </div>
+      <!-- Email collected here so it can be pre-filled in the success overlay -->
+      <div class="field"><label>Email <span style="font-weight:600;color:#C0C4CC">(optional)</span></label><input class="fi" type="email" id="f-email" placeholder="owner@example.com" maxlength="80"/></div>
       <div class="field"><label>Category</label>
         <select class="fi" id="f-cat">
           <option value="">Select category</option>
@@ -212,17 +247,17 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
       </div>
 
       <div class="loc-box">
-        <div class="lbt">📍 Pin Your Shop Location</div>
+        <div class="lbt">&#128205; Pin Your Shop Location</div>
         <button id="gps-btn" onclick="doGPS()">&#x2316; Use My GPS Location</button>
-        <div class="or-d">— or pick area —</div>
+        <div class="or-d">&#8212; or pick area &#8212;</div>
         <select id="area-sel" onchange="doArea(this.value)">
           <option value="">Select your area in Jodhpur...</option>
-          <optgroup label="🟣 North Zone"><option value="26.295,73.017">Sardarpura</option><option value="26.312,73.024">Paota</option><option value="26.320,73.018">Shastri Nagar</option><option value="26.305,73.010">Basni</option><option value="26.330,73.025">Chopasni Road</option></optgroup>
-          <optgroup label="🔵 East Zone"><option value="26.295,73.058">Chopasni Housing Board</option><option value="26.280,73.065">Pratap Nagar</option><option value="26.260,73.058">Pal Road</option><option value="26.270,73.070">Airport Road</option></optgroup>
-          <optgroup label="🔴 South Zone"><option value="26.220,73.024">Mahamandir</option><option value="26.205,73.010">Bhagat Ki Kothi</option><option value="26.195,73.024">Salawas Road</option><option value="26.180,73.030">Mandore Road</option></optgroup>
-          <optgroup label="🟡 West Zone"><option value="26.239,72.980">Ratanada</option><option value="26.250,72.965">Residency Road</option><option value="26.260,72.950">Kamla Nehru Nagar</option><option value="26.270,72.940">Kalyanpur</option></optgroup>
+          <optgroup label="North Zone"><option value="26.295,73.017">Sardarpura</option><option value="26.312,73.024">Paota</option><option value="26.320,73.018">Shastri Nagar</option><option value="26.305,73.010">Basni</option><option value="26.330,73.025">Chopasni Road</option></optgroup>
+          <optgroup label="East Zone"><option value="26.295,73.058">Chopasni Housing Board</option><option value="26.280,73.065">Pratap Nagar</option><option value="26.260,73.058">Pal Road</option><option value="26.270,73.070">Airport Road</option></optgroup>
+          <optgroup label="South Zone"><option value="26.220,73.024">Mahamandir</option><option value="26.205,73.010">Bhagat Ki Kothi</option><option value="26.195,73.024">Salawas Road</option><option value="26.180,73.030">Mandore Road</option></optgroup>
+          <optgroup label="West Zone"><option value="26.239,72.980">Ratanada</option><option value="26.250,72.965">Residency Road</option><option value="26.260,72.950">Kamla Nehru Nagar</option><option value="26.270,72.940">Kalyanpur</option></optgroup>
         </select>
-        <div class="or-d">— or tap the map —</div>
+        <div class="or-d">&#8212; or tap the map &#8212;</div>
         <div class="tap-h">Tap anywhere on the map to drop your pin</div>
       </div>
 
@@ -247,21 +282,64 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
   </div>
 </div>
 
-<!-- SUCCESS + QR -->
+<!-- ── SUCCESS + QR OVERLAY ── -->
 <div class="sov" id="sov">
   <div class="sbox">
-    <div class="sicon">✓</div>
+    <div class="sicon">&#10003;</div>
     <div class="stitle">You're registered!</div>
-    <div class="ssub">Save your Business ID and QR code. Share the QR with your driver so they can find your shop instantly.</div>
+    <p class="ssub2">Your Business ID and QR code are ready. Now send the verification link to yourself to activate your account &#8212; it's free, no SMS needed.</p>
+
     <div class="biz-id-box">
       <div class="biz-id-label">Your Navadhar Business ID</div>
       <div class="biz-id-val" id="suc-id">NVD-001</div>
       <div class="biz-id-zone" id="suc-zone"></div>
     </div>
+
     <div id="qr-container"></div>
-    <div class="qr-hint">📲 Driver scans this QR to instantly see your pickup location on their map.<br>Save or screenshot this QR code now.</div>
+    <p class="qr-hint">&#128242; Driver scans this QR to instantly see your pickup location.<br>Download or screenshot it now.</p>
+
+    <!-- ── SEND VERIFICATION LINK ── -->
+    <div class="send-verify-box">
+      <div class="svb-header">
+        <div class="svb-header-title">&#128279; Send Verification Link to Yourself</div>
+        <div class="svb-header-sub">Tap the link to activate your account &#8212; completely free</div>
+      </div>
+      <div class="svb-body">
+
+        <!-- WhatsApp -->
+        <button class="ch-btn wa" id="wa-btn" onclick="sendViaWA()">
+          <div class="ch-icon">&#128172;</div>
+          <div class="ch-text">
+            <span class="ch-label">Send via WhatsApp</span>
+            <span class="ch-desc" id="wa-desc">Opens WhatsApp with link ready &#8212; just tap Send</span>
+          </div>
+          <span class="ch-arrow">&#8594;</span>
+          <span class="sent-badge">&#10003; Opened</span>
+        </button>
+
+        <!-- Email -->
+        <div>
+          <div class="email-row-label">Your email address</div>
+          <div class="email-row"><input type="email" id="email-inp-sov" placeholder="owner@example.com"/></div>
+        </div>
+        <button class="ch-btn em" id="email-btn" onclick="sendViaEmail()">
+          <div class="ch-icon">&#9993;&#65039;</div>
+          <div class="ch-text">
+            <span class="ch-label">Send via Email</span>
+            <span class="ch-desc" id="email-desc">Opens your email app with link ready &#8212; just tap Send</span>
+          </div>
+          <span class="ch-arrow">&#8594;</span>
+          <span class="sent-badge">&#10003; Opened</span>
+        </button>
+
+        <div class="svb-note">
+          <b>How it works:</b> Tapping either button opens WhatsApp or your email app with a pre-filled message. Once you tap the verification link in that message, your Navadhar account activates instantly. <b>Links expire after 24 hours.</b>
+        </div>
+      </div>
+    </div>
+
     <div class="sbtns">
-      <button class="sbtn" style="background:#fff;color:var(--ink);border-color:var(--ink)" onclick="downloadQR()">⬇ Download QR</button>
+      <button class="sbtn" style="background:#fff;color:var(--ink);border-color:var(--ink)" onclick="downloadQR()">&#11015; Download QR</button>
       <button class="sbtn" style="background:#fff;color:var(--ink);border-color:var(--ink)" onclick="resetForm()">Register Another</button>
       <a class="sbtn" style="background:var(--or);color:#fff;border-color:var(--or)" href="./index.html">Home</a>
     </div>
@@ -270,47 +348,44 @@ label{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;text-transfor
 
 <script>
 var CTR={lat:26.2389,lng:73.0243};
-var ZM={North:{solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9'},East:{solid:'#0284C7',light:'#E0F2FE',text:'#0284C7'},South:{solid:'#DC2626',light:'#FEE2E2',text:'#DC2626'},West:{solid:'#D97706',light:'#FEF3C7',text:'#D97706'}};
+var ZM={
+  North:{solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9'},
+  East:{solid:'#0284C7',light:'#E0F2FE',text:'#0284C7'},
+  South:{solid:'#DC2626',light:'#FEE2E2',text:'#DC2626'},
+  West:{solid:'#D97706',light:'#FEF3C7',text:'#D97706'}
+};
+
 function hav(la1,lo1,la2,lo2){var R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;var a=Math.sin(d1/2)*Math.sin(d1/2)+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)*Math.sin(d2/2);return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));}
 function getZone(lat,lng){var dLat=lat-CTR.lat,dLng=lng-CTR.lng;return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');}
 function db(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
 function save(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
 function nextID(){var all=db();var nums=all.map(function(p){return parseInt(p.bizId.replace('NVD-',''))||0;});var max=nums.length?Math.max.apply(null,nums):0;return 'NVD-'+(max+1).toString().padStart(3,'0');}
 
-// ── AUTH STATE ──
-var verifiedPhone='', generatedOTP='', otpTimer=null, timerSec=0;
+// ── AUTH ──
+var verifiedPhone='',generatedOTP='',otpTimer=null,timerSec=0;
 
 function validatePhone(){
   var v=document.getElementById('phone-inp').value.replace(/\D/g,'');
-  document.getElementById('send-otp-btn').disabled = v.length<10;
+  document.getElementById('send-otp-btn').disabled=v.length<10;
 }
-
 function sendOTP(){
   var raw=document.getElementById('phone-inp').value.trim();
   var digits=raw.replace(/\D/g,'');
   if(digits.length<10){showAMsg('phone-msg','Please enter a valid 10-digit mobile number.','err');return;}
-  // Generate a 6-digit OTP (in real app this would be sent via SMS API)
   generatedOTP=Math.floor(100000+Math.random()*900000).toString();
   verifiedPhone=raw;
-  document.getElementById('otp-sub').textContent='We generated a 6-digit code for '+raw+'. (Demo: your OTP is '+generatedOTP+')';
-  showScreen('sc-otp');
-  setStep(2,'active');
-  startTimer(120);
+  document.getElementById('otp-sub').textContent='Demo OTP for '+raw+': '+generatedOTP;
+  showScreen('sc-otp');setStep(2,'active');startTimer(120);
   showAMsg('otp-msg','OTP generated! In production this would be sent via SMS.','warn');
 }
-
 function validateOTP(){
-  var v=document.getElementById('otp-inp').value;
-  document.getElementById('verify-btn').disabled = v.length!==6;
+  document.getElementById('verify-btn').disabled=document.getElementById('otp-inp').value.length!==6;
 }
-
 function verifyOTP(){
-  var entered=document.getElementById('otp-inp').value.trim();
-  if(entered===generatedOTP){
+  if(document.getElementById('otp-inp').value.trim()===generatedOTP){
     clearInterval(otpTimer);
     document.getElementById('verified-phone').textContent=verifiedPhone;
-    showScreen('sc-details');
-    setStep(2,'done');setStep(3,'active');
+    showScreen('sc-details');setStep(2,'done');setStep(3,'active');
     setTimeout(initMap,200);
   } else {
     showAMsg('otp-msg','Incorrect OTP. Please try again.','err');
@@ -318,54 +393,30 @@ function verifyOTP(){
     document.getElementById('verify-btn').disabled=true;
   }
 }
-
 function resendOTP(){
   generatedOTP=Math.floor(100000+Math.random()*900000).toString();
-  document.getElementById('otp-sub').textContent='New OTP generated for '+verifiedPhone+'. (Demo: '+generatedOTP+')';
-  startTimer(120);
-  document.getElementById('resend-row').style.display='none';
+  document.getElementById('otp-sub').textContent='New demo OTP for '+verifiedPhone+': '+generatedOTP;
+  startTimer(120);document.getElementById('resend-row').style.display='none';
   showAMsg('otp-msg','New OTP sent!','ok');
 }
-
 function goBack(){clearInterval(otpTimer);showScreen('sc-phone');setStep(2,'');}
-
 function startTimer(sec){
-  timerSec=sec;
-  document.getElementById('resend-row').style.display='none';
-  clearInterval(otpTimer);
+  timerSec=sec;document.getElementById('resend-row').style.display='none';clearInterval(otpTimer);
   otpTimer=setInterval(function(){
     timerSec--;
-    if(timerSec<=0){
-      clearInterval(otpTimer);
-      document.getElementById('otp-timer').textContent='';
-      document.getElementById('resend-row').style.display='block';
-    } else {
-      var m=Math.floor(timerSec/60),s=timerSec%60;
-      document.getElementById('otp-timer').textContent='Resend available in '+m+':'+(s<10?'0':'')+s;
-    }
+    if(timerSec<=0){clearInterval(otpTimer);document.getElementById('otp-timer').textContent='';document.getElementById('resend-row').style.display='block';}
+    else{var m=Math.floor(timerSec/60),s=timerSec%60;document.getElementById('otp-timer').textContent='Resend in '+m+':'+(s<10?'0':'')+s;}
   },1000);
 }
 
-// ── STEPS UI ──
+// ── STEPS / SCREENS ──
 function setStep(n,state){
-  var el=document.getElementById('s'+n);
-  el.className='si '+(state||'');
-  var sn=el.querySelector('.sn');
-  if(state==='done'){sn.textContent='✓';}
-  else{sn.textContent=n;}
+  var el=document.getElementById('s'+n);el.className='si '+(state||'');
+  el.querySelector('.sn').textContent=(state==='done')?'\u2713':n;
   if(n>1){var sl=document.getElementById('sl'+(n-1));if(sl)sl.className='sl '+(state==='done'||state==='active'?'done':'');}
 }
-
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
-  document.getElementById(id).classList.add('active');
-}
-
-function showAMsg(id,txt,type){
-  var el=document.getElementById(id);
-  el.textContent=txt;el.className='amsg show '+type;
-  clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show');},8000);
-}
+function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById(id).classList.add('active');}
+function showAMsg(id,txt,type){var el=document.getElementById(id);el.textContent=txt;el.className='amsg show '+type;clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show');},8000);}
 
 // ── MAP ──
 var MAP=null,PIN=null,pLat=null,pLng=null;
@@ -373,7 +424,7 @@ function initMap(){
   if(MAP)return;
   MAP=L.map('the-map').setView([CTR.lat,CTR.lng],13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap',maxZoom:19}).addTo(MAP);
-  MAP.addLayer(L.marker([CTR.lat,CTR.lng],{icon:L.divIcon({className:'',html:'<div style="width:18px;height:18px;border-radius:50%;background:#FF5C00;border:3px solid white;box-shadow:0 0 0 5px rgba(255,92,0,.2)"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).bindPopup('<b style="font-family:Syne;color:#FF5C00">Ghanta Ghar — City Center</b>'));
+  MAP.addLayer(L.marker([CTR.lat,CTR.lng],{icon:L.divIcon({className:'',html:'<div style="width:18px;height:18px;border-radius:50%;background:#FF5C00;border:3px solid white;box-shadow:0 0 0 5px rgba(255,92,0,.2)"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).bindPopup('<b style="font-family:Syne;color:#FF5C00">Ghanta Ghar &mdash; City Center</b>'));
   db().forEach(function(p){
     var c=ZM[p.zone];if(!c)return;
     MAP.addLayer(L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:'<div style="width:12px;height:12px;border-radius:50%;background:'+c.solid+';border:2px solid white"></div>',iconSize:[12,12],iconAnchor:[6,6]})}).bindPopup('<b style="font-family:Syne;color:'+c.solid+'">'+p.biz+'</b><br><small>'+p.bizId+' &bull; '+p.zone+' Zone</small>'));
@@ -387,8 +438,7 @@ function setPin(lat,lng){
   MAP.addLayer(PIN);
   PIN.on('drag',function(e){pLat=e.latlng.lat;pLng=e.latlng.lng;showPinStatus();});
   PIN.on('dragend',function(e){pLat=e.target.getLatLng().lat;pLng=e.target.getLatLng().lng;showPinStatus();});
-  MAP.setView([lat,lng],Math.max(MAP.getZoom(),15));
-  showPinStatus();
+  MAP.setView([lat,lng],Math.max(MAP.getZoom(),15));showPinStatus();
 }
 function showPinStatus(){
   if(!pLat||!pLng)return;
@@ -396,7 +446,7 @@ function showPinStatus(){
   document.getElementById('pin-status').className='pst active';
   document.getElementById('sdot').className='sdot live';
   document.getElementById('stxt').textContent=pLat.toFixed(5)+', '+pLng.toFixed(5);
-  document.getElementById('ssub').textContent=d+'m from city center — drag pin to adjust';
+  document.getElementById('ssub').textContent=d+'m from city center \u2014 drag pin to adjust';
   document.getElementById('sztag').innerHTML='<span class="ztag" style="background:'+c.light+';color:'+c.text+';border-color:'+c.solid+'">'+z+' Zone</span>';
 }
 function doGPS(){
@@ -405,21 +455,12 @@ function doGPS(){
   btn.disabled=true;btn.textContent='Detecting...';
   navigator.geolocation.getCurrentPosition(
     function(pos){btn.disabled=false;btn.innerHTML='&#x2316; Use My GPS Location';setPin(pos.coords.latitude,pos.coords.longitude);showFMsg('Location found! Drag pin to exact shop location.','ok');},
-    function(e){btn.disabled=false;btn.innerHTML='&#x2316; Use My GPS Location';var m={1:'Location permission denied.',2:'GPS unavailable.',3:'Timeout.'};showFMsg((m[e.code]||'GPS failed.')+' Use area picker or tap map.','warn');},
+    function(e){btn.disabled=false;btn.innerHTML='&#x2316; Use My GPS Location';var m={1:'Permission denied.',2:'GPS unavailable.',3:'Timeout.'};showFMsg((m[e.code]||'GPS failed.')+' Use area picker or tap map.','warn');},
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
-function doArea(val){
-  if(!val)return;
-  var p=val.split(',');
-  setPin(parseFloat(p[0]),parseFloat(p[1]));
-  showFMsg('Area pinned! Drag the green pin to your exact shop.','ok');
-}
-function showFMsg(txt,type){
-  var el=document.getElementById('fmsg');
-  el.textContent=txt;el.className='fmsg show '+type;
-  clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show');},6000);
-}
+function doArea(val){if(!val)return;var p=val.split(',');setPin(parseFloat(p[0]),parseFloat(p[1]));showFMsg('Area pinned! Drag the green pin to your exact shop.','ok');}
+function showFMsg(txt,type){var el=document.getElementById('fmsg');el.textContent=txt;el.className='fmsg show '+type;clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show');},6000);}
 
 // ── SUBMIT ──
 var lastBiz=null;
@@ -427,126 +468,117 @@ function doSubmit(){
   var biz=document.getElementById('f-biz').value.trim();
   var owner=document.getElementById('f-owner').value.trim();
   var wa=document.getElementById('f-wa').value.trim()||verifiedPhone;
+  var email=document.getElementById('f-email').value.trim();
   var cat=document.getElementById('f-cat').value;
   if(!biz){showFMsg('Please enter your business name.','err');document.getElementById('f-biz').focus();return;}
   if(!pLat||!pLng){showFMsg('Please pin your location on the map.','err');return;}
   var z=getZone(pLat,pLng),d=hav(CTR.lat,CTR.lng,pLat,pLng),c=ZM[z];
   var bizId=nextID();
-  var entry={id:Date.now(),bizId:bizId,biz:biz,owner:owner,phone:verifiedPhone,whatsapp:wa,category:cat,lat:pLat,lng:pLng,zone:z,dist:d,registeredAt:new Date().toISOString()};
+  var entry={id:Date.now(),bizId:bizId,biz:biz,owner:owner,phone:verifiedPhone,whatsapp:wa,email:email,category:cat,lat:pLat,lng:pLng,zone:z,dist:d,registeredAt:new Date().toISOString()};
   var all=db();all.push(entry);save(all);
   lastBiz=entry;
 
-  // ── SEND VERIFICATION LINKS ──
-  sendVerificationLinks(entry);
+  buildVerifyLinks(entry);
 
-  // Show success with QR
+  // Populate overlay
   document.getElementById('suc-id').textContent=bizId;
   var zb=document.getElementById('suc-zone');
-  zb.textContent=z+' Zone — '+d+'m from center';
-  zb.style.cssText='background:'+c.light+';color:'+c.text+';border-color:'+c.solid+';font-family:Syne;font-size:11px;font-weight:800;padding:3px 10px;border-radius:5px;display:inline-block;margin-top:4px;border:1px solid';
+  zb.textContent=z+' Zone \u2014 '+d+'m from center';
+  zb.style.cssText='background:'+c.light+';color:'+c.text+';border-color:'+c.solid+';font-family:Syne,sans-serif;font-size:11px;font-weight:800;padding:3px 10px;border-radius:5px;display:inline-block;margin-top:4px;border:1px solid';
+
+  // Pre-fill email in overlay if entered during registration
+  document.getElementById('email-inp-sov').value=email||'';
+
+  // Reset button states
+  document.getElementById('wa-btn').classList.remove('sent');
+  document.getElementById('email-btn').classList.remove('sent');
+  document.getElementById('wa-desc').textContent='Opens WhatsApp with link ready \u2014 just tap Send';
+  document.getElementById('email-desc').textContent='Opens your email app with link ready \u2014 just tap Send';
+
   generateQR(entry);
   document.getElementById('sov').className='sov show';
   setStep(3,'done');
 }
 
-// ── VERIFICATION LINK ──
-function generateToken(){
-  return Math.random().toString(36).substring(2)+Math.random().toString(36).substring(2);
-}
+// ── BUILD VERIFY LINKS ──
+function generateToken(){return Math.random().toString(36).substring(2,10)+Math.random().toString(36).substring(2,10);}
 
-function sendVerificationLinks(entry){
+function buildVerifyLinks(entry){
   var token=generateToken();
-  var baseUrl=window.location.origin+window.location.pathname.replace('register.html','');
-  var verifyUrl=baseUrl+'verify.html?token='+token+'&id='+entry.bizId;
+  var base=window.location.origin+window.location.pathname.replace('register.html','');
+  var verifyUrl=base+'verify.html?token='+token+'&id='+entry.bizId;
 
-  // Store pending verification
+  // Persist token for verify.html to check
   var pending=JSON.parse(localStorage.getItem('nvd_pending_verify')||'[]');
-  pending.push({
-    token:token,
-    bizId:entry.bizId,
-    biz:entry.biz,
-    owner:entry.owner||'',
-    zone:entry.zone,
-    dist:entry.dist,
-    phone:entry.phone,
-    createdAt:Date.now()
-  });
+  pending.push({token:token,bizId:entry.bizId,biz:entry.biz,owner:entry.owner||'',zone:entry.zone,dist:entry.dist,phone:entry.phone,createdAt:Date.now()});
   localStorage.setItem('nvd_pending_verify',JSON.stringify(pending));
 
-  // ── WHATSAPP MESSAGE — "Verify My Account" hyperlink (primary channel) ──
-  // WhatsApp renders *text* as bold, hyperlinks as tappable
-  var waMsg='Hello '+(entry.owner||'there')+'! 👋\n\n'
+  // WhatsApp message — uses \n escape sequences (correct for JS strings)
+  var name=entry.owner||'there';
+  var waMsg=
+    'Hello '+name+'! \uD83D\uDC4B\n\n'
     +'Your business *'+entry.biz+'* has been registered with *Navadhar Delivery Network* in Jodhpur.\n\n'
     +'Your Business ID: *'+entry.bizId+'*\n'
     +'Delivery Zone: *'+entry.zone+' Zone*\n\n'
-    +'Please tap the link below to verify your account:\n\n'
-    +'👉 *Verify My Account* → '+verifyUrl+'\n\n'
-    +'⏰ _This link expires in 24 hours. Do not share it._\n\n'
-    +'— Navadhar Team, Jodhpur 🚚';
+    +'Tap the link below to verify and activate your account:\n\n'
+    +'\uD83D\uDC49 Verify My Account \u2192 '+verifyUrl+'\n\n'
+    +'\u23F0 This link expires in 24 hours. Do not share it with others.\n\n'
+    +'\u2014 Navadhar Team, Jodhpur \uD83D\uDE9A';
 
   var waNumber=(entry.whatsapp||entry.phone).replace(/\D/g,'');
-  // Open WhatsApp with pre-filled message
-  var waUrl='https://wa.me/'+waNumber+'?text='+encodeURIComponent(waMsg);
+  entry._waUrl='https://wa.me/'+waNumber+'?text='+encodeURIComponent(waMsg);
 
-  // ── EMAIL via mailto (opens email client) ──
-  var emailSubject='Verify My Account — Navadhar Delivery Network';
-  var emailBody='Hello '+(entry.owner||'there')+',\n\n'
-    +'Your business "'+entry.biz+'" (ID: '+entry.bizId+') has been registered with Navadhar Delivery Network.\n\n'
-    +'Click the link below to confirm and verify your account:\n\n'
-    +'Verify My Account → '+verifyUrl+'\n\n'
-    +'This link expires in 24 hours.\n\n'
-    +'— Navadhar Team, Jodhpur';
-
-  // Store links for the success modal to display
-  entry._waUrl=waUrl;
-  entry._emailUrl='mailto:?subject='+encodeURIComponent(emailSubject)+'&body='+encodeURIComponent(emailBody);
+  // Email content — pre-built, "to" address filled at send time from overlay input
   entry._verifyUrl=verifyUrl;
+  entry._emailSubject='Verify My Account \u2014 Navadhar Delivery Network';
+  entry._emailBody=
+    'Hello '+name+',\n\n'
+    +'Your business "'+entry.biz+'" (ID: '+entry.bizId+') has been registered with Navadhar Delivery Network.\n\n'
+    +'Click the link below to verify and activate your account:\n\n'
+    +'Verify My Account \u2192 '+verifyUrl+'\n\n'
+    +'This link expires in 24 hours. Do not share it with others.\n\n'
+    +'\u2014 Navadhar Team, Jodhpur';
+}
+
+// ── SEND ACTIONS ──
+function sendViaWA(){
+  if(!lastBiz||!lastBiz._waUrl)return;
+  window.open(lastBiz._waUrl,'_blank');
+  var btn=document.getElementById('wa-btn');
+  btn.classList.add('sent');
+  document.getElementById('wa-desc').textContent='WhatsApp opened \u2014 press Send inside the app';
+}
+
+function sendViaEmail(){
+  if(!lastBiz||!lastBiz._verifyUrl)return;
+  var emailTo=document.getElementById('email-inp-sov').value.trim();
+  // Build mailto: with optional To address
+  var mailtoUrl='mailto:'+encodeURIComponent(emailTo)
+    +'?subject='+encodeURIComponent(lastBiz._emailSubject)
+    +'&body='+encodeURIComponent(lastBiz._emailBody);
+  window.open(mailtoUrl,'_blank');
+  var btn=document.getElementById('email-btn');
+  btn.classList.add('sent');
+  document.getElementById('email-desc').textContent='Email app opened \u2014 press Send';
 }
 
 // ── QR CODE ──
 function generateQR(entry){
-  var el=document.getElementById('qr-container');
-  el.innerHTML='';
-  // QR encodes a URL to the business scan page
+  var el=document.getElementById('qr-container');el.innerHTML='';
   var qrData=window.location.origin+window.location.pathname.replace('register.html','')+'scan.html?id='+entry.bizId;
-  try{
-    new QRCode(el,{text:qrData,width:180,height:180,colorDark:'#0A0A14',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
-  }catch(err){
-    // Fallback: show text QR data
-    el.innerHTML='<div style="background:var(--off);border:2px solid var(--ink);border-radius:8px;padding:12px;font-size:11px;color:#8888A0;word-break:break-all">QR URL:<br><b style="color:var(--ink)">'+qrData+'</b></div>';
-  }
+  try{new QRCode(el,{text:qrData,width:180,height:180,colorDark:'#0A0A14',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
+  catch(err){el.innerHTML='<div style="background:var(--off);border:2px solid var(--ink);border-radius:8px;padding:12px;font-size:11px;color:#8888A0;word-break:break-all">QR URL:<br><b style="color:var(--ink)">'+qrData+'</b></div>';}
 }
-
-function sendViaWA(){
-  if(!lastBiz||!lastBiz._waUrl){return;}
-  window.open(lastBiz._waUrl,'_blank');
-  var btn=document.getElementById('wa-send-btn');
-  if(btn){btn.textContent='✓ WhatsApp Opened — Ask them to press Send';btn.style.background='#16A34A';btn.style.borderColor='#16A34A';}
-}
-
-function sendViaEmail(){
-  if(!lastBiz||!lastBiz._emailUrl){return;}
-  window.open(lastBiz._emailUrl,'_blank');
-  var btn=document.getElementById('email-send-btn');
-  if(btn){btn.textContent='✓ Email Opened';btn.style.background='#16A34A';btn.style.borderColor='#16A34A';}
-}
-
 function downloadQR(){
   var canvas=document.querySelector('#qr-container canvas');
   if(!canvas){alert('QR not ready yet.');return;}
-  var a=document.createElement('a');
-  a.download='navadhar-qr-'+(lastBiz?lastBiz.bizId:'biz')+'.png';
-  a.href=canvas.toDataURL('image/png');
-  a.click();
+  var a=document.createElement('a');a.download='navadhar-qr-'+(lastBiz?lastBiz.bizId:'biz')+'.png';a.href=canvas.toDataURL('image/png');a.click();
 }
 
+// ── RESET ──
 function resetForm(){
   document.getElementById('sov').className='sov';
-  document.getElementById('f-biz').value='';
-  document.getElementById('f-owner').value='';
-  document.getElementById('f-wa').value='';
-  document.getElementById('f-cat').value='';
-  document.getElementById('area-sel').value='';
+  ['f-biz','f-owner','f-wa','f-email','f-cat','area-sel','email-inp-sov'].forEach(function(id){document.getElementById(id).value='';});
   if(PIN){MAP.removeLayer(PIN);PIN=null;}
   pLat=null;pLng=null;
   document.getElementById('pin-status').className='pst';
@@ -555,10 +587,6 @@ function resetForm(){
   document.getElementById('ssub').textContent='Use GPS, pick area, or tap the map';
   document.getElementById('sztag').innerHTML='';
 }
-
-window.addEventListener('load',function(){
-  // Map starts on screen 2, init when needed
-});
 </script>
 </body>
 </html>
