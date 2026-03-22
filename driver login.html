@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Driver Portal — Navadhar</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06060f;--bg2:#0b0b1a;--bg3:#101024;--bg4:#14142a;
+  --ink:#eeeeff;--ink2:#7878a0;--ink3:#2e2e50;
+  --or:#FF5C00;--or2:#ff7a2a;--or-g:rgba(255,92,0,.38);
+  --gr:#16A34A;--gr-g:rgba(22,163,74,.35);
+  --re:#DC2626;--am:#D97706;--vi:#6C2BD9;--sk:#0284C7;
+  --fh:'Bebas Neue',sans-serif;--fs:'Syne',sans-serif;
+  --fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--fb);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.025;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* grid bg */
+.g-grid{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:52px 52px;
+  mask-image:radial-gradient(ellipse 100% 70% at 50% 0,black,transparent)}
+
+/* particles */
+.pts{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.pt{position:absolute;border-radius:50%;opacity:0;animation:ptf linear infinite}
+@keyframes ptf{0%{transform:translateY(100vh);opacity:0}10%{opacity:.45}90%{opacity:.15}100%{transform:translateY(-80px);opacity:0}}
+
+/* ── NAV ── */
+nav{background:rgba(6,6,15,.88);backdrop-filter:blur(22px);border-bottom:1px solid rgba(255,255,255,.07);padding:0 44px;height:64px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:300}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.lsq{width:34px;height:34px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fs);font-weight:800;font-size:15px;color:#fff;box-shadow:0 0 16px var(--or-g)}
+.lname{font-family:var(--fs);font-weight:800;font-size:15px;color:var(--ink);letter-spacing:.06em}
+.nav-tag{padding:4px 12px;border-radius:100px;font-family:var(--fs);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,92,0,.1);border:1px solid rgba(255,92,0,.3);color:var(--or)}
+.nav-r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.nb{font-size:11px;padding:7px 14px;border-radius:7px;border:1px solid rgba(255,255,255,.1);color:var(--ink2);text-decoration:none;font-family:var(--fs);font-weight:600;background:rgba(255,255,255,.04);transition:all .2s;letter-spacing:.04em;cursor:pointer}
+.nb:hover{color:var(--ink);border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.08)}
+.nb.danger:hover{color:#fca5a5;border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.08)}
+#nav-driver-info{display:none;align-items:center;gap:10px}
+.driver-zone-pill{padding:4px 14px;border-radius:100px;font-family:var(--fs);font-size:11px;font-weight:700;letter-spacing:.08em}
+
+/* ── STATES ── */
+.state{display:none;position:relative;z-index:1}
+.state.active{display:block}
+
+/* ═══════════════════════════
+   STATE 1 — PHONE ENTRY
+═══════════════════════════ */
+#st-phone,#st-waiting{max-width:460px;margin:0 auto;padding:48px 24px}
+.auth-card{background:rgba(11,11,26,.9);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:44px 40px;position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(255,92,0,.05);animation:card-in .5s cubic-bezier(.22,1,.36,1)}
+@keyframes card-in{from{opacity:0;transform:translateY(22px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,92,0,.5),transparent)}
+.amb{position:fixed;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(255,92,0,.12) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:0;animation:amb-p 6s ease-in-out infinite}
+@keyframes amb-p{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
+.card-icon{width:64px;height:64px;border-radius:18px;background:rgba(255,92,0,.1);border:1px solid rgba(255,92,0,.3);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 22px;box-shadow:0 0 24px rgba(255,92,0,.15)}
+.card-eyebrow{font-family:var(--fs);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--or);text-align:center;margin-bottom:8px}
+.card-title{font-family:var(--fh);font-size:44px;color:var(--ink);text-align:center;letter-spacing:.03em;line-height:1;margin-bottom:8px}
+.card-sub{font-size:13px;color:var(--ink2);text-align:center;line-height:1.7;margin-bottom:28px}
+.inp-label{font-family:var(--fs);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2);display:block;margin-bottom:7px}
+.big-inp{width:100%;padding:16px 20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;font-size:22px;color:var(--ink);font-family:var(--fs);font-weight:700;outline:none;text-align:center;letter-spacing:.08em;transition:border .2s,box-shadow .2s}
+.big-inp:focus{border-color:var(--or);background:rgba(255,92,0,.05);box-shadow:0 0 0 3px rgba(255,92,0,.12)}
+.big-inp::placeholder{color:rgba(255,255,255,.15);font-size:16px;letter-spacing:.04em}
+.pbtn{width:100%;padding:16px;margin-top:12px;background:var(--or);color:#fff;border:none;border-radius:12px;font-family:var(--fs);font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.08em;transition:all .2s;position:relative;overflow:hidden;box-shadow:0 0 28px var(--or-g),0 4px 18px rgba(0,0,0,.4)}
+.pbtn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.13) 0%,transparent 60%)}
+.pbtn:hover:not(:disabled){background:var(--or2);transform:translateY(-2px);box-shadow:0 0 48px var(--or-g),0 8px 28px rgba(0,0,0,.5)}
+.pbtn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.gbtn{width:100%;padding:13px;margin-top:10px;background:rgba(255,255,255,.04);color:var(--ink2);border:1px solid rgba(255,255,255,.1);border-radius:12px;font-family:var(--fs);font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.06em;transition:all .2s}
+.gbtn:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+.amsg{margin-top:14px;padding:11px 14px;border-radius:10px;font-size:12px;font-weight:600;display:none;font-family:var(--fs);letter-spacing:.04em}
+.amsg.show{display:block}
+.amsg.err{background:rgba(220,38,38,.1);color:#fca5a5;border:1px solid rgba(220,38,38,.3)}
+.amsg.ok{background:rgba(22,163,74,.1);color:#86efac;border:1px solid rgba(22,163,74,.3)}
+.amsg.warn{background:rgba(217,119,6,.1);color:#fde68a;border:1px solid rgba(217,119,6,.3)}
+
+/* waiting screen */
+.wa-icon{width:80px;height:80px;border-radius:22px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 22px;box-shadow:0 0 28px rgba(37,211,102,.2);animation:wa-p 2.5s ease-in-out infinite}
+@keyframes wa-p{0%,100%{box-shadow:0 0 28px rgba(37,211,102,.2)}50%{box-shadow:0 0 50px rgba(37,211,102,.4),0 0 0 8px rgba(37,211,102,.06)}}
+.phone-disp{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:22px;font-family:var(--fs);font-size:18px;font-weight:700;color:var(--or);text-align:center;letter-spacing:.1em}
+.steps-list{display:flex;flex-direction:column;gap:0;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden;margin-bottom:24px}
+.srow{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;color:var(--ink2);transition:background .3s}
+.srow:last-child{border-bottom:none}
+.srow.done{color:var(--ink)}.srow.active{background:rgba(255,92,0,.06);color:var(--ink)}
+.sdot{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:var(--fs);font-weight:800;border:1px solid rgba(255,255,255,.1);color:var(--ink2);background:rgba(255,255,255,.03);transition:all .4s}
+.srow.done .sdot{background:var(--gr);color:#fff;border-color:var(--gr)}
+.srow.active .sdot{background:var(--or);color:#fff;border-color:var(--or);box-shadow:0 0 14px var(--or-g);animation:sdot-p 1.2s ease-in-out infinite alternate}
+@keyframes sdot-p{0%{box-shadow:0 0 10px var(--or-g)}100%{box-shadow:0 0 24px var(--or-g),0 0 0 4px rgba(255,92,0,.12)}}
+.srow-text{flex:1}
+.srow-text b{display:block;font-family:var(--fs);font-weight:700;font-size:12px;color:var(--ink);margin-bottom:1px;letter-spacing:.02em}
+.sent-badge{display:none;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);border-radius:8px;padding:8px 16px;font-family:var(--fs);font-size:12px;font-weight:700;color:#86efac;text-align:center;letter-spacing:.04em;margin-bottom:14px}
+.sent-badge.show{display:block}
+
+/* ═══════════════════════════
+   STATE 2 — CREDENTIALS FORM
+═══════════════════════════ */
+#st-creds{max-width:680px;margin:0 auto;padding:40px 24px}
+.creds-card{background:var(--bg2);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:40px;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 16px 60px rgba(0,0,0,.6);position:relative;overflow:hidden}
+.creds-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,92,0,.5),transparent)}
+.creds-eyebrow{font-family:var(--fs);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--or);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.creds-eyebrow::before{content:'';width:14px;height:2px;background:var(--or)}
+.creds-title{font-family:var(--fh);font-size:52px;color:var(--ink);letter-spacing:.03em;line-height:1;margin-bottom:6px}
+.creds-sub{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:28px}
+.phone-confirm{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;margin-bottom:28px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);font-family:var(--fs);font-size:12px;font-weight:700;color:#86efac;letter-spacing:.06em}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.form-grid .full{grid-column:span 2}
+.flbl{font-family:var(--fs);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2);display:block;margin-bottom:7px}
+.flbl .req{color:var(--or);margin-left:2px}
+.finp,.fsel{width:100%;padding:13px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:11px;font-size:13px;color:var(--ink);font-family:var(--fb);outline:none;transition:border .2s,box-shadow .2s;margin-bottom:0}
+.finp:focus,.fsel:focus{border-color:var(--or);background:rgba(255,92,0,.04);box-shadow:0 0 0 3px rgba(255,92,0,.1)}
+.finp::placeholder{color:rgba(255,255,255,.18)}
+.fsel{cursor:pointer}.fsel option{background:#1a1a2e;color:var(--ink)}
+/* vehicle type cards */
+.vtype-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:0}
+.vtype-card{padding:14px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .2s;text-align:center}
+.vtype-card:hover{border-color:rgba(255,92,0,.4);background:rgba(255,92,0,.06)}
+.vtype-card.selected{border-color:var(--or);background:rgba(255,92,0,.1);box-shadow:0 0 0 2px rgba(255,92,0,.2)}
+.vtype-icon{font-size:28px;margin-bottom:6px}
+.vtype-label{font-family:var(--fs);font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:.06em}
+.vtype-card.selected .vtype-label{color:var(--or)}
+/* disclaimer */
+.disclaimer{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--ink2);line-height:1.65}
+.disclaimer b{color:var(--ink)}
+.creds-save-btn{width:100%;padding:16px;border-radius:12px;background:var(--or);color:#fff;border:none;font-family:var(--fs);font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.08em;transition:all .2s;box-shadow:0 0 28px var(--or-g),0 4px 18px rgba(0,0,0,.4);position:relative;overflow:hidden}
+.creds-save-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.13) 0%,transparent 60%)}
+.creds-save-btn:hover:not(:disabled){background:var(--or2);transform:translateY(-2px)}
+.creds-save-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.fmsg{margin-top:14px;padding:11px 14px;border-radius:9px;font-size:12px;font-family:var(--fs);font-weight:700;display:none;letter-spacing:.04em}
+.fmsg.show{display:block}
+.fmsg.err{background:rgba(220,38,38,.1);color:#fca5a5;border:1px solid rgba(220,38,38,.3)}
+
+/* ═══════════════════════════
+   STATE 3 — PENDING APPROVAL
+═══════════════════════════ */
+#st-pending{max-width:520px;margin:0 auto;padding:48px 24px}
+.pending-card{background:var(--bg2);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:40px;text-align:center;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 24px 80px rgba(0,0,0,.6);animation:card-in .5s cubic-bezier(.22,1,.36,1)}
+.pending-icon{width:80px;height:80px;border-radius:22px;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 22px;animation:pend-p 3s ease-in-out infinite}
+@keyframes pend-p{0%,100%{box-shadow:0 0 20px rgba(217,119,6,.2)}50%{box-shadow:0 0 40px rgba(217,119,6,.4),0 0 0 8px rgba(217,119,6,.06)}}
+.pending-title{font-family:var(--fh);font-size:48px;color:var(--ink);letter-spacing:.03em;margin-bottom:6px}
+.pending-sub{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:24px}
+.pending-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:100px;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.35);font-family:var(--fs);font-size:12px;font-weight:700;color:#fde68a;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px}
+.pending-dot{width:8px;height:8px;border-radius:50%;background:#fde68a;animation:pend-dot 1.5s ease-in-out infinite}
+@keyframes pend-dot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}}
+.creds-summary{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;text-align:left;margin-bottom:20px}
+.cs-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+.cs-row:last-child{border-bottom:none}
+.cs-key{font-family:var(--fs);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)}
+.cs-val{font-family:var(--fm);font-size:11px;color:var(--ink);letter-spacing:.04em}
+.pending-note{font-size:12px;color:var(--ink2);line-height:1.7;padding:12px 16px;background:rgba(255,255,255,.02);border-radius:10px;border:1px solid rgba(255,255,255,.06)}
+
+/* ═══════════════════════════
+   STATE 4 — DRIVER DASHBOARD
+═══════════════════════════ */
+#st-dashboard{min-height:calc(100vh - 64px)}
+.dash-hero{background:linear-gradient(135deg,rgba(255,92,0,.08) 0%,transparent 60%),var(--bg2);border-bottom:1px solid rgba(255,255,255,.07);padding:28px 44px;position:relative;overflow:hidden;z-index:1}
+.dash-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(255,92,0,.12) 0%,transparent 70%);pointer-events:none}
+.dh-grid-bg{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:32px 32px}
+.dh-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:24px;flex-wrap:wrap;position:relative;z-index:1}
+.dh-left{flex:1;min-width:200px}
+.dh-eyebrow{font-family:var(--fs);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--or);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.dh-eyebrow::before{content:'';width:16px;height:2px;background:var(--or)}
+.dh-name{font-family:var(--fh);font-size:52px;color:var(--ink);letter-spacing:.03em;line-height:1;margin-bottom:2px}
+.dh-sub{font-size:12px;color:var(--ink2)}
+.dh-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dh-stat{text-align:center;padding:10px 18px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
+.dhs-val{font-family:var(--fh);font-size:30px;letter-spacing:.04em;line-height:1}
+.dhs-lbl{font-size:10px;color:var(--ink2);font-family:var(--fs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.zone-badge-big{display:flex;align-items:center;gap:10px;padding:10px 18px;border-radius:12px;font-family:var(--fs);font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+
+/* dashboard grid */
+.dash-body{max-width:1200px;margin:0 auto;padding:28px 44px;display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
+
+/* pickup list */
+.pickup-panel{background:var(--bg2);border:1px solid rgba(255,255,255,.07);border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 8px 32px rgba(0,0,0,.5)}
+.pp-header{padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.pp-title{font-family:var(--fh);font-size:28px;color:var(--ink);letter-spacing:.04em}
+.pp-meta{font-size:11px;color:var(--ink2);font-family:var(--fs);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.pp-filter{display:flex;gap:6px;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.05);flex-wrap:wrap}
+.pf-btn{padding:5px 14px;border-radius:100px;font-family:var(--fs);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(255,255,255,.1);color:var(--ink2);background:rgba(255,255,255,.04);cursor:pointer;transition:all .2s}
+.pf-btn:hover,.pf-btn.active{background:rgba(255,92,0,.1);border-color:rgba(255,92,0,.4);color:var(--or)}
+
+/* pickup items */
+.pickup-list{max-height:520px;overflow-y:auto}
+.pickup-list::-webkit-scrollbar{width:4px}
+.pickup-list::-webkit-scrollbar-track{background:transparent}
+.pickup-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.pickup-item{display:flex;align-items:flex-start;gap:14px;padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .2s;animation:pi-in .4s ease both}
+@keyframes pi-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.pickup-item:last-child{border-bottom:none}
+.pickup-item:hover{background:rgba(255,255,255,.03)}
+.pickup-item.collected{opacity:.5}
+.pi-num{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:18px;color:#fff;flex-shrink:0;font-weight:normal}
+.pi-info{flex:1;min-width:0}
+.pi-name{font-family:var(--fs);font-weight:700;font-size:13px;color:var(--ink);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-owner{font-size:11px;color:var(--ink2);margin-bottom:4px}
+.pi-dist{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--fm);color:var(--ink2);background:rgba(255,255,255,.04);padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.07)}
+.pi-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0}
+.pi-status{font-size:10px;font-family:var(--fs);font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.06em;text-transform:uppercase}
+.pi-status.pending{background:rgba(2,132,199,.1);color:#7dd3fc;border:1px solid rgba(2,132,199,.3)}
+.pi-status.collected{background:rgba(22,163,74,.1);color:#86efac;border:1px solid rgba(22,163,74,.3)}
+.collect-btn{padding:6px 12px;border-radius:7px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);color:#86efac;font-family:var(--fs);font-weight:700;font-size:10px;cursor:pointer;letter-spacing:.06em;transition:all .2s;white-space:nowrap}
+.collect-btn:hover{background:rgba(22,163,74,.25);border-color:var(--gr)}
+.collect-btn.done{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:var(--ink2);cursor:default}
+.empty-list{text-align:center;padding:48px 20px;color:var(--ink2);font-family:var(--fs);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.35}
+
+/* right panel */
+.right-panel{display:flex;flex-direction:column;gap:18px}
+.map-card{background:var(--bg2);border:1px solid rgba(255,255,255,.07);border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 8px 32px rgba(0,0,0,.5)}
+.mc-header{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+.mc-title{font-family:var(--fs);font-size:12px;font-weight:700;color:var(--ink);letter-spacing:.04em}
+.mc-badge{font-size:10px;font-family:var(--fs);font-weight:700;padding:3px 10px;border-radius:5px;color:#fff;letter-spacing:.06em}
+#driver-map{height:280px;width:100%}
+.mc-footer{padding:8px 16px;background:rgba(255,255,255,.02);border-top:1px solid rgba(255,255,255,.05);display:flex;gap:12px;flex-wrap:wrap}
+.ml{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink2);font-family:var(--fs);font-weight:600;letter-spacing:.04em}
+.ml-d{width:8px;height:8px;border-radius:50%}
+
+/* summary card */
+.sum-card{background:var(--bg2);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:20px;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 8px 32px rgba(0,0,0,.5)}
+.sum-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+.sum-row:last-child{border-bottom:none}
+.sum-key{font-family:var(--fs);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)}
+.sum-val{font-family:var(--fm);font-size:12px;color:var(--ink);letter-spacing:.04em}
+.sum-val.big{font-family:var(--fh);font-size:24px;letter-spacing:.04em}
+
+/* leaflet dark */
+.leaflet-container{background:#0a0a18!important}
+.leaflet-tile{filter:brightness(.62) saturate(.4) hue-rotate(200deg)}
+.leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:10px!important;box-shadow:none!important;color:var(--ink)!important}
+.leaflet-popup-tip{background:var(--bg2)!important}
+.leaflet-control-zoom a{background:var(--bg2)!important;color:var(--ink)!important;border:1px solid rgba(255,255,255,.1)!important;font-weight:800!important}
+.leaflet-control-zoom a:hover{background:var(--bg3)!important}
+.leaflet-control-attribution{background:rgba(6,6,15,.7)!important;color:var(--ink2)!important;font-size:9px!important}
+
+@media(max-width:1024px){.dash-body{grid-template-columns:1fr}.right-panel{display:grid;grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.dash-body{padding:20px 16px}.dash-hero{padding:20px 16px}.right-panel{grid-template-columns:1fr}nav{padding:0 16px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:span 1}}
+</style>
+</head>
+<body>
+
+<div class="g-grid"></div>
+<div class="pts" id="pts"></div>
+<div class="amb"></div>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="./index.html"><div class="lsq">N</div><span class="lname">NAVADHAR</span></a>
+  <div class="nav-tag">Driver Portal</div>
+  <div id="nav-driver-info">
+    <div class="driver-zone-pill" id="nav-zone-pill">— Zone</div>
+    <div style="font-family:var(--fs);font-size:12px;font-weight:700;color:var(--ink2)" id="nav-driver-name">—</div>
+  </div>
+  <div class="nav-r">
+    <a class="nb" href="./index.html">← Home</a>
+    <button class="nb danger" id="nav-signout" onclick="signOut()" style="display:none">Sign Out</button>
+  </div>
+</nav>
+
+<!-- ═══ STATE 1: PHONE ENTRY ═══ -->
+<div class="state active" id="st-phone">
+  <div style="max-width:460px;margin:0 auto;padding:48px 24px">
+    <div class="auth-card">
+      <div class="card-icon">🚚</div>
+      <div class="card-eyebrow">Navadhar Driver Portal</div>
+      <div class="card-title">DRIVER LOGIN</div>
+      <p class="card-sub">Enter your WhatsApp number. We'll send you a secure link to access your driver dashboard.</p>
+      <label class="inp-label">WhatsApp Mobile Number</label>
+      <input class="big-inp" type="tel" id="phone-inp" placeholder="+91 98765 43210" maxlength="15" oninput="onPhoneInput()"/>
+      <button class="pbtn" id="send-btn" onclick="sendDriverLink()" disabled>Send Link via WhatsApp →</button>
+      <div class="amsg" id="phone-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STATE 1B: WAITING ═══ -->
+<div class="state" id="st-waiting">
+  <div style="max-width:460px;margin:0 auto;padding:48px 24px">
+    <div class="auth-card">
+      <div class="wa-icon">💬</div>
+      <div class="card-eyebrow">Link Sent</div>
+      <div class="card-title">CHECK WHATSAPP</div>
+      <div class="phone-disp" id="waiting-phone">+91 —</div>
+      <div class="sent-badge" id="sent-badge">✓ WhatsApp opened — tap Send, then tap the link</div>
+      <div class="steps-list">
+        <div class="srow done" id="sr1"><div class="sdot">✓</div><div class="srow-text"><b>Number Entered</b>Link generated for your number</div></div>
+        <div class="srow active" id="sr2"><div class="sdot">2</div><div class="srow-text"><b>Open WhatsApp</b>Tap Send on the pre-filled message</div></div>
+        <div class="srow" id="sr3"><div class="sdot">3</div><div class="srow-text"><b>Tap the Link</b>Opens your driver portal</div></div>
+      </div>
+      <button class="pbtn" onclick="reopenWA()">💬 Open WhatsApp Again</button>
+      <button class="gbtn" onclick="goBackToPhone()">← Change Number</button>
+      <div class="amsg" id="wait-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STATE 2: CREDENTIALS ═══ -->
+<div class="state" id="st-creds">
+  <div class="creds-card">
+    <div class="creds-eyebrow">Step 2 of 2 — Driver Credentials</div>
+    <div class="creds-title">YOUR DETAILS</div>
+    <p class="creds-sub">Complete your profile to be considered for activation. All documents are verified by our admin team before you can begin pickups.</p>
+    <div class="phone-confirm" id="creds-phone-confirm">📱 Verified: —</div>
+
+    <div class="form-grid">
+      <div class="full">
+        <label class="flbl">Full Name <span class="req">*</span></label>
+        <input class="finp" id="c-name" type="text" placeholder="Ramesh Kumar Sharma" maxlength="60" oninput="watchCreds()"/>
+      </div>
+      <div>
+        <label class="flbl">Driving Licence No. <span class="req">*</span></label>
+        <input class="finp" id="c-dl" type="text" placeholder="RJ14 20110012345" maxlength="20" oninput="watchCreds()" style="font-family:var(--fm);text-transform:uppercase"/>
+      </div>
+      <div>
+        <label class="flbl">Vehicle RC Number <span class="req">*</span></label>
+        <input class="finp" id="c-rc" type="text" placeholder="RJ14 CA 1234" maxlength="20" oninput="watchCreds()" style="font-family:var(--fm);text-transform:uppercase"/>
+      </div>
+      <div>
+        <label class="flbl">Aadhaar Number <span class="req">*</span></label>
+        <input class="finp" id="c-aadhaar" type="text" placeholder="XXXX XXXX XXXX" maxlength="14" oninput="watchCreds()" style="font-family:var(--fm)"/>
+      </div>
+      <div>
+        <label class="flbl">Emergency Contact</label>
+        <input class="finp" id="c-emergency" type="tel" placeholder="+91 98765 43210" maxlength="15"/>
+      </div>
+      <div class="full">
+        <label class="flbl">Vehicle Type <span class="req">*</span></label>
+        <div class="vtype-grid" id="vtype-grid">
+          <div class="vtype-card" data-val="2-wheeler" onclick="selectVType(this)">
+            <div class="vtype-icon">🛵</div>
+            <div class="vtype-label">2-Wheeler</div>
+          </div>
+          <div class="vtype-card" data-val="3-wheeler" onclick="selectVType(this)">
+            <div class="vtype-icon">🛺</div>
+            <div class="vtype-label">3-Wheeler</div>
+          </div>
+          <div class="vtype-card" data-val="4-wheeler" onclick="selectVType(this)">
+            <div class="vtype-icon">🚐</div>
+            <div class="vtype-label">4-Wheeler</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <b>Before you submit:</b> By submitting, you confirm that all details are accurate. Your Driving Licence, RC, and Aadhaar will be verified by the Navadhar admin team. You will receive WhatsApp confirmation once approved. <b>You cannot accept pickups until approved.</b>
+    </div>
+
+    <button class="creds-save-btn" id="creds-save-btn" onclick="submitCreds()" disabled>
+      Submit for Approval →
+    </button>
+    <div class="fmsg" id="creds-msg"></div>
+  </div>
+</div>
+
+<!-- ═══ STATE 3: PENDING ═══ -->
+<div class="state" id="st-pending">
+  <div class="pending-card">
+    <div class="pending-icon">⏳</div>
+    <div class="pending-title">UNDER REVIEW</div>
+    <p class="pending-sub">Your credentials have been submitted and are being reviewed by the Navadhar admin team.</p>
+    <div class="pending-badge"><div class="pending-dot"></div>Awaiting Admin Approval</div>
+    <div class="creds-summary" id="creds-summary"></div>
+    <div class="pending-note">
+      You will receive a WhatsApp message once your account is approved. Once approved, return to this page and you'll have full access to your pickup route and zone map.
+    </div>
+    <button class="gbtn" style="margin-top:16px" onclick="refreshStatus()">🔄 Check Approval Status</button>
+    <div class="amsg" id="pending-msg" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ STATE 4: APPROVED DASHBOARD ═══ -->
+<div class="state" id="st-dashboard">
+
+  <!-- HERO -->
+  <div class="dash-hero">
+    <div class="dh-grid-bg"></div>
+    <div class="dh-inner">
+      <div class="dh-left">
+        <div class="dh-eyebrow">Driver Dashboard</div>
+        <div class="dh-name" id="dh-name">DRIVER</div>
+        <div class="dh-sub" id="dh-sub">—</div>
+      </div>
+      <div class="dh-right">
+        <div class="zone-badge-big" id="zone-badge-big" style="background:rgba(255,92,0,.1);border:1px solid rgba(255,92,0,.3);color:#FF5C00">
+          <span id="zone-badge-letter" style="font-family:var(--fh);font-size:28px">N</span>
+          <div>
+            <div id="zone-badge-name" style="font-size:13px">North Zone</div>
+            <div id="zone-badge-vehicle" style="font-size:10px;opacity:.7;font-family:var(--fs);letter-spacing:.08em">VH-N01</div>
+          </div>
+        </div>
+        <div class="dh-stat">
+          <div class="dhs-val" id="dhs-total" style="color:var(--or)">0</div>
+          <div class="dhs-lbl">Pickups Today</div>
+        </div>
+        <div class="dh-stat">
+          <div class="dhs-val" id="dhs-done" style="color:#86efac">0</div>
+          <div class="dhs-lbl">Collected</div>
+        </div>
+        <div class="dh-stat">
+          <div class="dhs-val" id="dhs-rem" style="color:#7dd3fc">0</div>
+          <div class="dhs-lbl">Remaining</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="dash-body">
+
+    <!-- PICKUP LIST -->
+    <div class="pickup-panel">
+      <div class="pp-header">
+        <div>
+          <div class="pp-title">TODAY'S PICKUPS</div>
+          <div class="pp-meta" id="pp-meta">Sorted nearest → farthest from center</div>
+        </div>
+      </div>
+      <div class="pp-filter">
+        <button class="pf-btn active" id="pf-all" onclick="filterList('all')">All</button>
+        <button class="pf-btn" id="pf-pending" onclick="filterList('pending')">Pending</button>
+        <button class="pf-btn" id="pf-collected" onclick="filterList('collected')">Collected</button>
+      </div>
+      <div class="pickup-list" id="pickup-list">
+        <div class="empty-list"><div class="empty-icon">📦</div>No pickups in your zone today</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: MAP + SUMMARY -->
+    <div class="right-panel">
+
+      <!-- MAP -->
+      <div class="map-card">
+        <div class="mc-header">
+          <span class="mc-title">Zone Route Map</span>
+          <span class="mc-badge" id="mc-badge" style="background:#FF5C00">North Zone</span>
+        </div>
+        <div id="driver-map"></div>
+        <div class="mc-footer">
+          <div class="ml"><div class="ml-d" style="background:#FF5C00"></div>City Center</div>
+          <div class="ml"><div class="ml-d" id="ml-zone" style="background:#6C2BD9"></div>Pickups</div>
+          <div class="ml"><div class="ml-d" style="background:#86efac"></div>Collected</div>
+        </div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div class="sum-card">
+        <div class="sum-row"><div class="sum-key">Driver</div><div class="sum-val" id="sum-name">—</div></div>
+        <div class="sum-row"><div class="sum-key">Licence</div><div class="sum-val" id="sum-dl">—</div></div>
+        <div class="sum-row"><div class="sum-key">Vehicle</div><div class="sum-val" id="sum-vtype">—</div></div>
+        <div class="sum-row"><div class="sum-key">RC</div><div class="sum-val" id="sum-rc">—</div></div>
+        <div class="sum-row"><div class="sum-key">Zone</div><div class="sum-val big" id="sum-zone" style="color:var(--or)">—</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──
+var CTR={lat:26.2389,lng:73.0243};
+var ZM={
+  North:{solid:'#6C2BD9',light:'rgba(108,43,217,.12)',glow:'rgba(108,43,217,.35)',vehicle:'VH-N01'},
+  East: {solid:'#0284C7',light:'rgba(2,132,199,.12)',  glow:'rgba(2,132,199,.35)',  vehicle:'VH-E01'},
+  South:{solid:'#DC2626',light:'rgba(220,38,38,.12)',  glow:'rgba(220,38,38,.35)',  vehicle:'VH-S01'},
+  West: {solid:'#D97706',light:'rgba(217,119,6,.12)',  glow:'rgba(217,119,6,.35)',  vehicle:'VH-W01'}
+};
+
+function hav(la1,lo1,la2,lo2){var R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;var a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));}
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function loadDrivers(){try{return JSON.parse(localStorage.getItem('nvd_drivers')||'[]');}catch(e){return[];}}
+function saveDrivers(d){try{localStorage.setItem('nvd_drivers',JSON.stringify(d));}catch(e){}}
+
+// ── PARTICLES ──
+(function(){
+  var w=document.getElementById('pts');
+  for(var i=0;i<16;i++){
+    var p=document.createElement('div');p.className='pt';
+    p.style.cssText='left:'+Math.random()*100+'%;width:'+(1+Math.random()*2)+'px;height:'+(1+Math.random()*2)+'px;background:'+(Math.random()>.6?'#FF5C00':'rgba(255,255,255,.5)')+';animation-duration:'+(10+Math.random()*16)+'s;animation-delay:'+(Math.random()*14)+'s';
+    w.appendChild(p);
+  }
+})();
+
+// ── STATE MANAGEMENT ──
+var DRIVER=null;
+var driverPhone='';
+var waUrl='';
+var vTypeSelected='';
+var DMAP=null;
+var currentFilter='all';
+
+function showState(id){
+  document.querySelectorAll('.state').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+
+function setNavDriver(driver){
+  var z=ZM[driver.zone]||{solid:'#FF5C00'};
+  document.getElementById('nav-driver-info').style.display='flex';
+  document.getElementById('nav-driver-name').textContent=driver.name;
+  var zp=document.getElementById('nav-zone-pill');
+  zp.textContent=(driver.zone||'—')+' Zone';
+  zp.style.background='rgba(255,255,255,.05)';
+  zp.style.border='1px solid '+z.solid;
+  zp.style.color=z.solid;
+  document.getElementById('nav-signout').style.display='block';
+}
+
+// ── BOOT: CHECK SESSION ──
+window.addEventListener('load',function(){
+  var activeId=localStorage.getItem('nvd_active_driver');
+  if(activeId){
+    var drivers=loadDrivers();
+    DRIVER=drivers.find(function(d){return d.driverId===activeId;});
+    if(DRIVER){
+      if(DRIVER.status==='approved'){showApprovedDash();}
+      else{showPending();}
+      return;
+    }
+  }
+  // Check URL token (coming from WA link)
+  var params=new URLSearchParams(window.location.search);
+  var token=params.get('dtoken');
+  if(token){handleDriverToken(token);}
+});
+
+// ── PHONE ──
+function onPhoneInput(){
+  var v=document.getElementById('phone-inp').value.replace(/\D/g,'');
+  document.getElementById('send-btn').disabled=v.length<10;
+}
+
+function sendDriverLink(){
+  var raw=document.getElementById('phone-inp').value.trim();
+  var digits=raw.replace(/\D/g,'');
+  if(digits.length<10){showMsg('phone-msg','Please enter a valid 10-digit number.','err');return;}
+  driverPhone=raw;
+  var token=makeToken();
+  var base=window.location.origin+window.location.pathname;
+  var link=base+'?dtoken='+token+'&dphone='+encodeURIComponent(raw);
+  storePendingToken(token,raw);
+  var msg=
+    'Hello! 👋\n\n'
+    +'You are registering as a *Navadhar Delivery Driver* in Jodhpur.\n\n'
+    +'Tap the link below to access your driver portal:\n\n'
+    +'🚚 *Open Driver Portal* → '+link+'\n\n'
+    +'⏰ _This link expires in 24 hours._\n\n'
+    +'— Navadhar Team, Jodhpur';
+  var waNum=digits.startsWith('91')?digits:'91'+digits;
+  waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(msg);
+  document.getElementById('waiting-phone').textContent=raw;
+  showState('st-waiting');
+  setTimeout(function(){
+    window.open(waUrl,'_blank');
+    document.getElementById('sent-badge').classList.add('show');
+  },400);
+}
+
+function reopenWA(){if(waUrl)window.open(waUrl,'_blank');showMsg('wait-msg','WhatsApp opened — tap Send then tap the link.','ok');}
+function goBackToPhone(){showState('st-phone');document.getElementById('sent-badge').classList.remove('show');}
+
+// ── TOKEN HANDLING ──
+function handleDriverToken(token){
+  var params=new URLSearchParams(window.location.search);
+  var phone=params.get('dphone')||'';
+  var pending=[];
+  try{pending=JSON.parse(localStorage.getItem('nvd_driver_pending_tokens')||'[]');}catch(e){}
+  var entry=pending.find(function(p){return p.token===token;});
+  if(!entry||(Date.now()-entry.createdAt>24*60*60*1000)){
+    showState('st-phone');
+    showMsg('phone-msg','This link has expired. Please request a new one.','err');
+    return;
+  }
+  driverPhone=entry.phone||phone;
+  // Remove token
+  pending=pending.filter(function(p){return p.token!==token;});
+  localStorage.setItem('nvd_driver_pending_tokens',JSON.stringify(pending));
+  // Check if driver already exists
+  var drivers=loadDrivers();
+  DRIVER=drivers.find(function(d){return d.phone===driverPhone;});
+  if(DRIVER){
+    localStorage.setItem('nvd_active_driver',DRIVER.driverId);
+    if(DRIVER.status==='approved'){showApprovedDash();}
+    else{showPending();}
+  } else {
+    // New driver — show credentials form
+    document.getElementById('creds-phone-confirm').textContent='📱 Verified: '+driverPhone;
+    showState('st-creds');
+  }
+  // Clean URL
+  window.history.replaceState({},'',window.location.pathname);
+}
+
+// ── CREDENTIALS ──
+function selectVType(el){
+  vTypeSelected=el.dataset.val;
+  document.querySelectorAll('.vtype-card').forEach(function(c){c.classList.remove('selected');});
+  el.classList.add('selected');
+  watchCreds();
+}
+
+function watchCreds(){
+  var name=document.getElementById('c-name').value.trim();
+  var dl=document.getElementById('c-dl').value.trim();
+  var rc=document.getElementById('c-rc').value.trim();
+  var aadhaar=document.getElementById('c-aadhaar').value.replace(/\s/g,'');
+  document.getElementById('creds-save-btn').disabled=!(name&&dl&&rc&&aadhaar.length>=12&&vTypeSelected);
+}
+
+function submitCreds(){
+  var name=document.getElementById('c-name').value.trim();
+  var dl=document.getElementById('c-dl').value.trim().toUpperCase();
+  var rc=document.getElementById('c-rc').value.trim().toUpperCase();
+  var aadhaar=document.getElementById('c-aadhaar').value.replace(/\s/g,'');
+  var emergency=document.getElementById('c-emergency').value.trim();
+  if(!name||!dl||!rc||aadhaar.length<12||!vTypeSelected){
+    showMsg('creds-msg','Please fill in all required fields.','err');return;
+  }
+  var drivers=loadDrivers();
+  var driverId='DRV-'+(String(drivers.length+1).padStart(3,'0'));
+  var newDriver={
+    driverId:driverId,name:name,phone:driverPhone,
+    licence:dl,rc:rc,aadhaar:aadhaar,vehicleType:vTypeSelected,
+    emergency:emergency,
+    status:'pending_approval',
+    zone:null,
+    submittedAt:new Date().toISOString(),
+    createdAt:Date.now()
+  };
+  drivers.push(newDriver);
+  saveDrivers(drivers);
+  DRIVER=newDriver;
+  localStorage.setItem('nvd_active_driver',driverId);
+  showPending();
+}
+
+// ── PENDING STATE ──
+function showPending(){
+  if(!DRIVER)return;
+  var html='';
+  var rows=[
+    ['Driver ID',DRIVER.driverId],
+    ['Name',DRIVER.name],
+    ['Phone',DRIVER.phone],
+    ['Licence',DRIVER.licence],
+    ['RC',DRIVER.rc],
+    ['Vehicle',DRIVER.vehicleType],
+    ['Submitted',new Date(DRIVER.submittedAt||DRIVER.createdAt).toLocaleDateString('en-IN')]
+  ];
+  rows.forEach(function(r){
+    html+='<div class="cs-row"><div class="cs-key">'+r[0]+'</div><div class="cs-val">'+r[1]+'</div></div>';
+  });
+  document.getElementById('creds-summary').innerHTML=html;
+  showState('st-pending');
+}
+
+function refreshStatus(){
+  if(!DRIVER)return;
+  var drivers=loadDrivers();
+  var updated=drivers.find(function(d){return d.driverId===DRIVER.driverId;});
+  if(updated&&updated.status==='approved'){
+    DRIVER=updated;showApprovedDash();
+  } else {
+    showMsg('pending-msg','Still under review. Check back soon.','warn');
+  }
+}
+
+// ── APPROVED DASHBOARD ──
+function showApprovedDash(){
+  if(!DRIVER)return;
+  setNavDriver(DRIVER);
+  var zone=DRIVER.zone||'North';
+  var z=ZM[zone]||ZM['North'];
+
+  // Hero
+  document.getElementById('dh-name').textContent=DRIVER.name.toUpperCase();
+  document.getElementById('dh-sub').textContent=DRIVER.vehicleType+' · '+DRIVER.licence+' · '+DRIVER.phone;
+
+  // Zone badge
+  var zb=document.getElementById('zone-badge-big');
+  zb.style.background=z.light;zb.style.border='1px solid '+z.solid;zb.style.color=z.solid;
+  document.getElementById('zone-badge-letter').textContent=zone.charAt(0);
+  document.getElementById('zone-badge-name').textContent=zone+' Zone';
+  document.getElementById('zone-badge-vehicle').textContent=z.vehicle;
+
+  // Map badge
+  document.getElementById('mc-badge').textContent=zone+' Zone';
+  document.getElementById('mc-badge').style.background=z.solid;
+  document.getElementById('ml-zone').style.background=z.solid;
+
+  // Summary card
+  document.getElementById('sum-name').textContent=DRIVER.name;
+  document.getElementById('sum-dl').textContent=DRIVER.licence;
+  document.getElementById('sum-vtype').textContent=DRIVER.vehicleType;
+  document.getElementById('sum-rc').textContent=DRIVER.rc;
+  document.getElementById('sum-zone').textContent=zone+' Zone';
+  document.getElementById('sum-zone').style.color=z.solid;
+
+  renderPickupList(zone);
+  showState('st-dashboard');
+  setTimeout(function(){renderDriverMap(zone);},200);
+}
+
+// ── PICKUP LIST ──
+function renderPickupList(zone){
+  var pickups=loadPickups().filter(function(p){return p.zone===zone&&p.verified;});
+  pickups.sort(function(a,b){return (a.dist||0)-(b.dist||0)});
+  var z=ZM[zone]||ZM['North'];
+  var total=pickups.length;
+  var collected=pickups.filter(function(p){return p._collected;}).length;
+  document.getElementById('dhs-total').textContent=total;
+  document.getElementById('dhs-done').textContent=collected;
+  document.getElementById('dhs-rem').textContent=total-collected;
+  document.getElementById('pp-meta').textContent=total+' stops · sorted nearest → farthest';
+
+  var filtered=pickups;
+  if(currentFilter==='pending')filtered=pickups.filter(function(p){return !p._collected;});
+  if(currentFilter==='collected')filtered=pickups.filter(function(p){return p._collected;});
+
+  var list=document.getElementById('pickup-list');
+  if(!filtered.length){
+    list.innerHTML='<div class="empty-list"><div class="empty-icon">📦</div>'+(total?'No '+currentFilter+' stops':'No pickups in '+zone+' Zone today')+'</div>';
+    return;
+  }
+  list.innerHTML=filtered.map(function(p,i){
+    var isCollected=!!p._collected;
+    var num=pickups.indexOf(p)+1;
+    return '<div class="pickup-item'+(isCollected?' collected':'')+'" id="pi-'+p.bizId+'">'
+      +'<div class="pi-num" style="background:'+z.solid+'">'+num+'</div>'
+      +'<div class="pi-info">'
+      +'<div class="pi-name">'+escH(p.biz||p.bizId)+'</div>'
+      +'<div class="pi-owner">'+(p.owner?escH(p.owner)+' · ':'')+escH(p.phone||'')+'</div>'
+      +'<div class="pi-dist">📍 '+(p.dist||0)+'m from center'+(p.lat?(' · '+p.lat.toFixed(4)+', '+p.lng.toFixed(4)):'')+'</div>'
+      +'</div>'
+      +'<div class="pi-actions">'
+      +'<div class="pi-status '+(isCollected?'collected':'pending')+'">'+(isCollected?'✓ Collected':'Pending')+'</div>'
+      +'<button class="collect-btn'+(isCollected?' done':'')+'" onclick="markCollected(\''+p.bizId+'\')" '+(isCollected?'disabled':'')+'>'
+      +(isCollected?'✓ Done':'Mark Collected')
+      +'</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function markCollected(bizId){
+  var all=loadPickups();
+  var idx=all.findIndex(function(p){return p.bizId===bizId;});
+  if(idx<0)return;
+  all[idx]._collected=true;
+  all[idx]._collectedAt=new Date().toISOString();
+  localStorage.setItem('nvd_pickups',JSON.stringify(all));
+  // Update marker on map
+  if(DMAP&&mapMarkers[bizId]){
+    mapMarkers[bizId].setIcon(L.divIcon({className:'',html:'<div style="width:16px;height:16px;border-radius:50%;background:#16A34A;border:2px solid white;box-shadow:0 0 10px rgba(22,163,74,.5)"></div>',iconSize:[16,16],iconAnchor:[8,8]}));
+  }
+  renderPickupList(DRIVER.zone||'North');
+}
+
+function filterList(f){
+  currentFilter=f;
+  ['all','pending','collected'].forEach(function(n){
+    document.getElementById('pf-'+n).classList.toggle('active',n===f);
+  });
+  renderPickupList(DRIVER.zone||'North');
+}
+
+// ── MAP ──
+var mapMarkers={};
+function renderDriverMap(zone){
+  if(DMAP)return;
+  var z=ZM[zone]||ZM['North'];
+  DMAP=L.map('driver-map').setView([CTR.lat,CTR.lng],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap',maxZoom:19}).addTo(DMAP);
+  // City center
+  L.marker([CTR.lat,CTR.lng],{icon:L.divIcon({className:'',html:'<div style="width:14px;height:14px;border-radius:50%;background:#FF5C00;border:2px solid white;box-shadow:0 0 0 4px rgba(255,92,0,.3)"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).bindPopup('<b style="color:#FF5C00">Ghanta Ghar — City Center</b>').addTo(DMAP);
+  // Zone pickups
+  var pickups=loadPickups().filter(function(p){return p.zone===zone&&p.verified&&p.lat&&p.lng;});
+  pickups.sort(function(a,b){return (a.dist||0)-(b.dist||0)});
+  var bounds=[[CTR.lat,CTR.lng]];
+  pickups.forEach(function(p,i){
+    var col=p._collected?'#16A34A':z.solid;
+    var marker=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',
+      html:'<div style="width:28px;height:28px;border-radius:50%;background:'+col+';border:2px solid white;box-shadow:0 0 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:13px;color:#fff">'+(i+1)+'</div>',
+      iconSize:[28,28],iconAnchor:[14,14]})});
+    marker.bindPopup('<b style="font-family:Syne;color:'+col+'">'+(p.biz||p.bizId)+'</b><br><small>'+(p.owner||'')+(p.owner&&p.phone?' · ':'')+p.phone+'</small><br><small>Stop '+(i+1)+' · '+(p.dist||0)+'m from center</small>');
+    marker.addTo(DMAP);
+    mapMarkers[p.bizId]=marker;
+    bounds.push([p.lat,p.lng]);
+  });
+  if(bounds.length>1)DMAP.fitBounds(bounds,{padding:[24,24]});
+}
+
+// ── HELPERS ──
+function makeToken(){return Math.random().toString(36).substring(2,10)+Math.random().toString(36).substring(2,10)+Date.now().toString(36);}
+function storePendingToken(token,phone){
+  var pending=[];try{pending=JSON.parse(localStorage.getItem('nvd_driver_pending_tokens')||'[]');}catch(e){}
+  pending=pending.filter(function(p){return p.phone!==phone;});
+  pending.push({token:token,phone:phone,createdAt:Date.now()});
+  localStorage.setItem('nvd_driver_pending_tokens',JSON.stringify(pending));
+}
+function escH(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showMsg(id,txt,type){var el=document.getElementById(id);el.textContent=txt;el.className=(el.className.split(' ')[0])+' amsg show '+type;clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show');},8000);}
+function signOut(){localStorage.removeItem('nvd_active_driver');DRIVER=null;DMAP=null;showState('st-phone');document.getElementById('nav-driver-info').style.display='none';document.getElementById('nav-signout').style.display='none';}
+</script>
+</body>
+</html>
