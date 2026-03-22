@@ -720,15 +720,18 @@ function showApprovedDash(){
     var drivers=loadDrivers();
     var idx=drivers.findIndex(function(d){return d.driverId===DRIVER.driverId;});
     if(idx>=0){drivers[idx]._waSent=true;saveDrivers(drivers);DRIVER._waSent=true;}
+    var portalUrl=window.location.origin+window.location.pathname;
     var waMsg=
-      'Hello '+DRIVER.name+'! \uD83D\uDE9A\n\n'
-      +'*Your Navadhar driver account has been approved!*\n\n'
+      'Hello '+DRIVER.name+'! 🚚\n\n'
+      +'*Your Navadhar driver account has been approved!* ✅\n\n'
       +'Driver ID: *'+DRIVER.driverId+'*\n'
-      +'Assigned Zone: *'+( DRIVER.zone||'—')+' Zone*\n'
+      +'Assigned Zone: *'+(DRIVER.zone||'—')+' Zone*\n'
       +'Vehicle Type: *'+DRIVER.vehicleType+'*\n\n'
-      +'You can now log in and start accepting pickups:\n'
-      +'\uD83D\uDC49 '+window.location.origin+window.location.pathname+'\n\n'
-      +'\u2014 Navadhar Team, Jodhpur';
+      +'Tap the link below to access your pickup dashboard:\n\n'
+      +'🚀 *Open Your Driver Dashboard*\n'
+      +portalUrl+'\n\n'
+      +'⏰ _Keep this message — use the link to log in anytime._\n\n'
+      +'— Navadhar Team, Jodhpur 🚚';
     var waNum=(DRIVER.phone||'').replace(/\D/g,'');
     if(!waNum.startsWith('91'))waNum='91'+waNum;
     var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(waMsg);
