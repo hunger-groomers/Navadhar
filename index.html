@@ -1,770 +1,926 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-const CENTER={lat:26.2389,lng:73.0243};
-const ZONE_META={
-  North:{label:'N',solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',vehicles:['VH-N01']},
-  East: {label:'E',solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',vehicles:['VH-E01']},
-  South:{label:'S',solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',vehicles:['VH-S01']},
-  West: {label:'W',solid:'#D97706',light:'#FEF3C7',text:'#D97706',vehicles:['VH-W01']}
-};
-function haversine(la1,lo1,la2,lo2){
-  const R=6371000,d1=(la2-la1)*Math.PI/180,d2=(lo2-lo1)*Math.PI/180;
-  const a=Math.sin(d1/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(d2/2)**2;
-  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
-}
-function getZone(lat,lng){
-  const dLat=lat-CENTER.lat,dLng=lng-CENTER.lng;
-  return Math.abs(dLat)>Math.abs(dLng)?(dLat>0?'North':'South'):(dLng>0?'East':'West');
-}
-function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
-function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
-function zonePickups(zone){return loadPickups().filter(p=>p.zone===zone).sort((a,b)=>a.dist-b.dist);}
-</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Navadhar — City Grid Delivery · Jodhpur</title>
+<title>Navadhar — Daily B2B Pickup, Jodhpur</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script>
+function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
+function getActiveBiz(){
+  var id=localStorage.getItem('nvd_active_biz');
+  var all=loadPickups();
+  if(id){var b=all.find(function(p){return p.bizId===id;});if(b)return b;}
+  var v=all.filter(function(p){return p.verified;});
+  return v.length?v[v.length-1]:null;
+}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#080810;--bg2:#0d0d1a;--bg3:#111122;
-  --ink:#F0F0FF;--ink2:#9090B0;--ink3:#5050708;
-  --or:#FF5C00;--or2:#ff7a2a;--or-glow:rgba(255,92,0,0.35);
-  --vi:#6C2BD9;--sk:#0284C7;--re:#DC2626;--am:#D97706;
-  --gr:#16A34A;
+  --bg:#07070e;--bg2:#0c0c18;--bg3:#10101e;--bg4:#161626;
+  --ink:#f0f0ff;--ink2:#8080a0;--ink3:#303048;
+  --or:#FF5C00;--or2:#ff7a2a;--or3:#cc4900;
+  --or-g:rgba(255,92,0,.4);--or-g2:rgba(255,92,0,.15);
   --fh:'Bebas Neue',sans-serif;--fs:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
-  --card-shadow:0 0 0 1px rgba(255,255,255,0.06),0 8px 32px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4);
-  --card-shadow-hover:0 0 0 1px rgba(255,92,0,0.3),0 20px 60px rgba(0,0,0,0.8),0 4px 16px rgba(255,92,0,0.15);
 }
 html,body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--fb);overflow-x:hidden}
 
-/* ─── NOISE OVERLAY ─── */
-body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  opacity:.028;mix-blend-mode:overlay;
-}
+/* grain */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.022;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-/* ─── NAV ─── */
-nav{
-  background:rgba(8,8,16,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-bottom:1px solid rgba(255,255,255,0.07);padding:0 48px;
-  display:flex;align-items:center;height:68px;gap:16px;
-  position:sticky;top:0;z-index:200;
+/* ══════════════════════
+   3D BUTTON SYSTEM
+══════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--fs);font-weight:800;letter-spacing:.07em;
+  text-decoration:none;cursor:pointer;border:none;
+  position:relative;transition:transform .15s ease,box-shadow .15s ease;
+  transform-style:preserve-3d;
+  user-select:none;
 }
-.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
-.lm{
-  width:38px;height:38px;background:var(--or);border-radius:9px;
+/* PRIMARY — orange 3D */
+.btn-primary{
+  padding:17px 36px;font-size:14px;color:#fff;
+  background:linear-gradient(180deg,var(--or2) 0%,var(--or) 45%,var(--or3) 100%);
+  border-radius:12px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.15) inset,
+    0 -1px 0 rgba(0,0,0,.3) inset,
+    0 6px 0 #7a2200,
+    0 8px 20px rgba(255,92,0,.45),
+    0 14px 40px rgba(0,0,0,.4);
+  transform:translateY(0);
+}
+.btn-primary:hover{
+  transform:translateY(-3px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.15) inset,
+    0 -1px 0 rgba(0,0,0,.3) inset,
+    0 9px 0 #7a2200,
+    0 12px 30px rgba(255,92,0,.55),
+    0 20px 50px rgba(0,0,0,.5);
+}
+.btn-primary:active{
+  transform:translateY(4px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.1) inset,
+    0 2px 0 #7a2200,
+    0 4px 12px rgba(255,92,0,.3);
+}
+.btn-primary .btn-arrow{
+  width:26px;height:26px;background:rgba(255,255,255,.15);
+  border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:transform .2s;
+}
+.btn-primary:hover .btn-arrow{transform:translateX(4px)}
+
+/* GHOST — outline 3D */
+.btn-ghost{
+  padding:16px 28px;font-size:13px;color:var(--ink2);
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:12px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 4px 0 rgba(0,0,0,.4),
+    0 6px 16px rgba(0,0,0,.3);
+  transform:translateY(0);
+}
+.btn-ghost:hover{
+  color:var(--ink);border-color:rgba(255,255,255,.28);
+  background:rgba(255,255,255,.07);
+  transform:translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.08) inset,
+    0 6px 0 rgba(0,0,0,.4),
+    0 10px 24px rgba(0,0,0,.4);
+}
+.btn-ghost:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.4),0 3px 8px rgba(0,0,0,.3)}
+
+/* SMALL ghost */
+.btn-sm{padding:9px 18px;font-size:11px;border-radius:9px;
+  box-shadow:0 3px 0 rgba(0,0,0,.4),0 5px 12px rgba(0,0,0,.25)}
+.btn-sm:hover{transform:translateY(-2px);box-shadow:0 5px 0 rgba(0,0,0,.4),0 8px 18px rgba(0,0,0,.3)}
+.btn-sm:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.4)}
+
+/* ══════════════════════
+   NAV
+══════════════════════ */
+nav{
+  background:rgba(7,7,14,.92);backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:0 52px;height:68px;display:flex;align-items:center;gap:14px;
+  position:sticky;top:0;z-index:400;
+}
+.logo{display:flex;align-items:center;gap:11px;text-decoration:none}
+.logo-sq{
+  width:38px;height:38px;background:var(--or);border-radius:10px;
   display:flex;align-items:center;justify-content:center;
   font-family:var(--fs);font-weight:800;font-size:17px;color:#fff;
-  box-shadow:0 0 20px var(--or-glow);
+  box-shadow:0 0 22px var(--or-g),0 4px 0 var(--or3),0 5px 12px rgba(0,0,0,.4);
+  transition:transform .15s,box-shadow .15s;
 }
-.lt{font-family:var(--fs);font-weight:800;font-size:17px;color:var(--ink);letter-spacing:.06em}
-.nr{margin-left:auto;display:flex;gap:8px;align-items:center}
-.nlink{
-  font-size:12px;padding:8px 16px;border-radius:8px;
-  border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);
-  text-decoration:none;font-family:var(--fs);font-weight:600;
-  transition:all .2s;letter-spacing:.04em;background:rgba(255,255,255,0.04);
-}
-.nlink:hover{border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.08)}
-.nlink.cta{
-  background:var(--or);color:#fff;border-color:var(--or);
-  box-shadow:0 0 20px var(--or-glow);
-}
-.nlink.cta:hover{background:var(--or2);box-shadow:0 0 30px var(--or-glow)}
+.logo:hover .logo-sq{transform:translateY(-2px);box-shadow:0 0 32px var(--or-g),0 6px 0 var(--or3),0 8px 18px rgba(0,0,0,.5)}
+.logo-name{font-family:var(--fh);font-size:20px;color:var(--ink);letter-spacing:.08em}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
 
-/* ─── HERO ─── */
-.hero{
-  min-height:100vh;display:flex;align-items:center;
-  padding:100px 48px 80px;position:relative;overflow:hidden;
-  background:radial-gradient(ellipse 80% 70% at 60% 50%,rgba(255,92,0,0.07) 0%,transparent 70%),
-             radial-gradient(ellipse 60% 80% at 10% 80%,rgba(108,43,217,0.08) 0%,transparent 60%),
-             var(--bg);
-}
-.hero-grid-lines{
-  position:absolute;inset:0;pointer-events:none;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);
-  background-size:60px 60px;
-  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 0%,transparent 100%);
-}
-.hero-inner{
-  max-width:1160px;margin:0 auto;
-  display:grid;grid-template-columns:1fr 1fr;gap:80px;
-  align-items:center;position:relative;z-index:1;width:100%;
-}
-.hero-eyebrow{
+/* logged-in biz pill */
+.biz-pill{
+  display:none;align-items:center;gap:10px;
+  padding:6px 14px 6px 8px;border-radius:100px;
+  background:rgba(255,92,0,.08);border:1px solid rgba(255,92,0,.25);
   font-family:var(--fs);font-size:11px;font-weight:700;
-  letter-spacing:.2em;text-transform:uppercase;color:var(--or);
-  margin-bottom:20px;display:flex;align-items:center;gap:10px;
+  color:var(--or);letter-spacing:.04em;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
 }
-.hero-eyebrow::before{content:'';width:24px;height:2px;background:var(--or)}
-h1.ht{
-  font-family:var(--fh);font-size:88px;line-height:.95;
-  margin-bottom:28px;color:#fff;letter-spacing:.02em;
+.biz-pill.show{display:flex}
+.biz-pill-av{
+  width:26px;height:26px;border-radius:8px;
+  background:var(--or);display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:#fff;font-family:var(--fh);flex-shrink:0;
 }
-h1.ht span{
-  color:transparent;
-  -webkit-text-stroke:2px var(--or);
-  text-shadow:0 0 40px var(--or-glow);
+.biz-pill-name{max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.biz-pill-zone{
+  padding:2px 8px;border-radius:100px;font-size:9px;
+  background:rgba(255,255,255,.08);color:var(--ink2);letter-spacing:.06em;
 }
-.hd{
-  font-size:15px;color:var(--ink2);line-height:1.8;
-  margin-bottom:40px;max-width:420px;
+
+/* ══════════════════════
+   HERO
+══════════════════════ */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  justify-content:center;padding:90px 52px 60px;
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 65% 40%,rgba(255,92,0,.07) 0%,transparent 65%),
+    radial-gradient(ellipse 50% 70% at 10% 90%,rgba(2,132,199,.05) 0%,transparent 60%),
+    var(--bg);
 }
-.hbtns{display:flex;gap:12px;flex-wrap:wrap}
-.hbtn{
-  padding:14px 28px;border-radius:10px;font-family:var(--fs);
-  font-weight:700;font-size:13px;text-decoration:none;
-  transition:all .2s;letter-spacing:.06em;
+
+/* subtle grid */
+.hero-grid{position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse 90% 80% at 60% 50%,black,transparent)}
+
+/* glowing orb */
+.hero-orb{
+  position:absolute;right:10%;top:20%;
+  width:500px;height:500px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,92,0,.1) 0%,rgba(255,92,0,.04) 40%,transparent 70%);
+  animation:orb-float 8s ease-in-out infinite;
+}
+@keyframes orb-float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,20px) scale(1.05)}}
+
+.hero-inner{
+  max-width:1200px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:72px;
+  align-items:center;position:relative;z-index:1;
+}
+
+/* headline */
+.hero-eyebrow{
   display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;border-radius:100px;
+  background:rgba(255,92,0,.1);border:1px solid rgba(255,92,0,.3);
+  font-family:var(--fs);font-size:10px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--or);
+  margin-bottom:22px;
 }
-.hbtn.p{
-  background:var(--or);color:#fff;
-  box-shadow:0 0 30px var(--or-glow),0 4px 16px rgba(0,0,0,0.4);
-}
-.hbtn.p:hover{background:var(--or2);transform:translateY(-2px);box-shadow:0 0 50px var(--or-glow),0 8px 24px rgba(0,0,0,0.5)}
-.hbtn.g{
-  background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.8);
-  border:1px solid rgba(255,255,255,0.15);
-}
-.hbtn.g:hover{background:rgba(255,255,255,0.1);color:#fff;transform:translateY(-2px)}
+.ey-dot{width:6px;height:6px;border-radius:50%;background:var(--or);animation:ey-p 1.8s ease-in-out infinite}
+@keyframes ey-p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
 
-/* ─── 3D CITY GRID ─── */
-.grid3d-wrap{
-  perspective:800px;display:flex;
-  align-items:center;justify-content:center;
-}
-.grid3d{
-  width:380px;height:380px;position:relative;
-  transform-style:preserve-3d;
-  transform:rotateX(22deg) rotateZ(-8deg);
-  animation:float3d 8s ease-in-out infinite;
-}
-@keyframes float3d{
-  0%,100%{transform:rotateX(22deg) rotateZ(-8deg) translateY(0)}
-  50%{transform:rotateX(18deg) rotateZ(-6deg) translateY(-12px)}
-}
-.g3d-base{
-  position:absolute;inset:0;border-radius:4px;
-  background:rgba(255,255,255,0.025);
-  border:1px solid rgba(255,255,255,0.08);
-  transform:translateZ(-6px);
-}
-.g3d-quad{
-  position:absolute;width:50%;height:50%;
-  transform-style:preserve-3d;transition:all .3s;
-}
-.g3d-quad:hover{transform:translateZ(18px) scale(1.02)!important}
-.g3d-face{
-  position:absolute;inset:2px;border-radius:6px;
-  display:flex;flex-direction:column;justify-content:flex-end;padding:16px;
-  border:1px solid rgba(255,255,255,0.12);
-  background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 100%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);
-  overflow:hidden;cursor:default;
-}
-.g3d-face::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at 30% 30%,rgba(255,255,255,0.1) 0%,transparent 70%);
-}
-.g3d-label{font-family:var(--fh);font-size:38px;color:#fff;line-height:1;position:relative;z-index:1}
-.g3d-sub{font-size:10px;font-family:var(--fs);font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,0.5);margin-top:2px;position:relative;z-index:1}
-.g3d-count{
-  position:absolute;top:12px;right:12px;
-  font-family:var(--fh);font-size:28px;color:rgba(255,255,255,0.3);z-index:1;
-}
-.g3d-dot{
-  position:absolute;width:8px;height:8px;border-radius:50%;
-  animation:gdot 2s ease-in-out infinite alternate;
-  z-index:2;
-}
-@keyframes gdot{0%{opacity:.4;transform:scale(1)}100%{opacity:1;transform:scale(1.3)}}
-/* axis lines on grid */
-.g3d-cross{
-  position:absolute;inset:0;pointer-events:none;z-index:5;
-}
-.g3d-cross::before{
-  content:'';position:absolute;left:50%;top:0;bottom:0;
-  width:1px;background:rgba(255,255,255,0.12);transform:translateX(-50%);
-}
-.g3d-cross::after{
-  content:'';position:absolute;top:50%;left:0;right:0;
-  height:1px;background:rgba(255,255,255,0.12);transform:translateY(-50%);
-}
-/* center pulse */
-.g3d-center{
-  position:absolute;left:50%;top:50%;
-  transform:translate(-50%,-50%) translateZ(10px);
-  width:22px;height:22px;border-radius:50%;
-  background:var(--or);z-index:10;
-  box-shadow:0 0 0 6px rgba(255,92,0,0.2),0 0 30px var(--or-glow);
-  animation:cpulse 2s ease-in-out infinite;
-}
-@keyframes cpulse{
-  0%,100%{box-shadow:0 0 0 6px rgba(255,92,0,0.2),0 0 30px var(--or-glow)}
-  50%{box-shadow:0 0 0 14px rgba(255,92,0,0.05),0 0 50px var(--or-glow)}
-}
+h1{font-family:var(--fh);font-size:clamp(58px,6.5vw,90px);line-height:.93;letter-spacing:.02em;color:#fff;margin-bottom:26px}
+h1 .h-accent{color:var(--or);text-shadow:0 0 40px var(--or-g)}
+h1 .h-ghost{color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.3)}
 
-/* ─── PARTICLES ─── */
-.particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.p{position:absolute;width:2px;height:2px;border-radius:50%;background:var(--or);opacity:0;animation:pfloat linear infinite}
-@keyframes pfloat{
-  0%{transform:translateY(100vh) translateX(0);opacity:0}
-  10%{opacity:.6}
-  90%{opacity:.3}
-  100%{transform:translateY(-100px) translateX(60px);opacity:0}
+.hero-desc{
+  font-size:16px;color:var(--ink2);line-height:1.85;
+  margin-bottom:36px;max-width:430px;
+}
+.hero-desc strong{color:var(--ink);font-weight:600}
+
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:44px}
+
+/* social proof strip */
+.proof-row{display:flex;gap:0;flex-wrap:wrap}
+.proof-item{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 20px;border-right:1px solid rgba(255,255,255,.06);
+  font-size:12px;font-family:var(--fs);font-weight:700;color:var(--ink2);letter-spacing:.04em;
+}
+.proof-item:first-child{padding-left:0}
+.proof-item:last-child{border-right:none}
+.proof-icon{font-size:16px}
+
+/* ══════════════════════
+   TRUCK SCENE
+══════════════════════ */
+.scene-wrap{
+  position:relative;border-radius:24px;overflow:hidden;
+  background:linear-gradient(160deg,var(--bg3) 0%,var(--bg2) 100%);
+  border:1px solid rgba(255,255,255,.07);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.04),
+    0 32px 80px rgba(0,0,0,.6),
+    0 0 60px rgba(255,92,0,.06);
+  height:420px;
+}
+.scene-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
+
+/* sky gradient */
+.scene-sky{position:absolute;inset:0;background:linear-gradient(180deg,#06060e 0%,#0a0a1a 40%,#0f0f1e 100%)}
+
+/* stars */
+.scene-stars{position:absolute;top:0;left:0;right:0;height:55%;pointer-events:none}
+
+/* city silhouette */
+.scene-city{position:absolute;bottom:100px;left:0;right:0;pointer-events:none}
+
+/* road layers — parallax depth */
+.road-far{position:absolute;bottom:0;left:0;right:0;height:100px;background:linear-gradient(180deg,#0d0d18 0%,#111120 100%)}
+.road-near{position:absolute;bottom:0;left:0;right:0;height:70px;background:linear-gradient(180deg,#131320 0%,#191926 100%)}
+
+/* road markings */
+.road-center-line{
+  position:absolute;bottom:34px;left:0;right:0;height:4px;
+  background:repeating-linear-gradient(90deg,var(--or) 0,var(--or) 50px,transparent 50px,transparent 100px);
+  animation:road-scroll 1s linear infinite;opacity:.55;
+}
+.road-center-line-2{
+  position:absolute;bottom:34px;left:0;right:0;height:4px;
+  background:repeating-linear-gradient(90deg,transparent 0,transparent 50px,rgba(255,255,255,.1) 50px,rgba(255,255,255,.1) 100px);
+  animation:road-scroll 1s linear infinite;
+}
+.road-edge{position:absolute;bottom:68px;left:0;right:0;height:2px;background:rgba(255,255,255,.06)}
+@keyframes road-scroll{from{background-position:0 0}to{background-position:-100px 0}}
+
+/* ground shadow under road */
+.road-shadow{position:absolute;bottom:0;left:0;right:0;height:12px;background:rgba(0,0,0,.4)}
+
+/* truck container — smooth drive */
+.truck-container{
+  position:absolute;bottom:68px;
+  animation:truck-smooth 7s cubic-bezier(.4,0,.6,1) infinite;
+}
+@keyframes truck-smooth{
+  0%{left:-280px;opacity:0}
+  5%{opacity:1}
+  90%{opacity:1}
+  100%{left:calc(100% + 50px);opacity:0}
 }
 
-/* ─── STATS BAR ─── */
-.sbar{
-  background:linear-gradient(90deg,var(--or) 0%,#e54d00 100%);
-  padding:20px 48px;
+/* truck shadow on road */
+.truck-shadow{
+  position:absolute;bottom:-8px;left:20px;right:10px;height:12px;
+  background:radial-gradient(ellipse,rgba(0,0,0,.5) 0%,transparent 70%);
+  filter:blur(4px);
+  animation:shadow-bounce .4s ease-in-out infinite alternate;
+}
+@keyframes shadow-bounce{0%{transform:scaleX(.95);opacity:.5}100%{transform:scaleX(1.02);opacity:.7}}
+
+/* truck body subtly bounces on road */
+.truck-body{animation:truck-bounce .35s ease-in-out infinite alternate}
+@keyframes truck-bounce{0%{transform:translateY(0)}100%{transform:translateY(-2px)}}
+
+/* headlight beam */
+.headlight-beam{
+  position:absolute;right:-60px;top:18px;
+  width:70px;height:28px;
+  background:linear-gradient(90deg,rgba(255,220,100,.35),transparent);
+  clip-path:polygon(0 30%,100% 0%,100% 100%,0 70%);
+  filter:blur(3px);
+  animation:beam-flicker 3s ease-in-out infinite;
+}
+@keyframes beam-flicker{0%,100%{opacity:.7}50%{opacity:.9}}
+
+/* wheel spin */
+.wheel{animation:wheel-spin .35s linear infinite}
+@keyframes wheel-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* exhaust puff */
+.exhaust-puff{
+  position:absolute;
+  border-radius:50%;
+  background:rgba(200,200,220,.12);
+  animation:puff linear infinite;
+  pointer-events:none;
+}
+@keyframes puff{
+  0%{transform:translateX(0) translateY(0) scale(1);opacity:.6}
+  100%{transform:translateX(-40px) translateY(-20px) scale(3);opacity:0}
+}
+
+/* scene labels */
+.scene-label{
+  position:absolute;top:16px;left:20px;
+  font-family:var(--fs);font-size:10px;font-weight:700;
+  color:rgba(255,255,255,.3);letter-spacing:.16em;text-transform:uppercase;
+}
+.scene-live{
+  position:absolute;top:16px;right:20px;
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--fs);font-size:10px;font-weight:700;
+  color:rgba(255,92,0,.8);letter-spacing:.1em;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--or);animation:ey-p 1.5s ease-in-out infinite}
+
+/* distance markers on road */
+.road-marker{
+  position:absolute;bottom:72px;
+  font-family:var(--fh);font-size:10px;color:rgba(255,255,255,.12);letter-spacing:.1em;
+}
+
+/* ══════════════════════
+   STATS BAR
+══════════════════════ */
+.stats-bar{
+  background:linear-gradient(90deg,var(--or3) 0%,var(--or) 50%,var(--or2) 100%);
+  padding:22px 52px;position:relative;overflow:hidden;z-index:1;
+}
+.stats-bar::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 120px,rgba(255,255,255,.04) 120px,rgba(255,255,255,.04) 121px)}
+.stats-inner{max-width:1200px;margin:0 auto;display:flex;gap:0;align-items:stretch;position:relative}
+.stat-item{flex:1;display:flex;align-items:baseline;gap:8px;padding:0 32px;border-right:1px solid rgba(255,255,255,.2);flex-shrink:0}
+.stat-item:first-child{padding-left:0}
+.stat-item:last-child{border-right:none}
+.stat-v{font-family:var(--fh);font-size:34px;color:#fff;letter-spacing:.04em;line-height:1}
+.stat-l{font-size:11px;color:rgba(255,255,255,.7);font-family:var(--fs);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+
+/* ══════════════════════
+   HOW IT WORKS
+══════════════════════ */
+.section{padding:100px 52px;position:relative;z-index:1}
+.section.dark{background:var(--bg2);border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.sec-inner{max-width:1200px;margin:0 auto}
+.sec-tag{font-family:var(--fs);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--or);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec-tag::before{content:'';width:28px;height:2px;background:var(--or);border-radius:2px}
+.sec-title{font-family:var(--fh);font-size:clamp(38px,4vw,60px);color:var(--ink);letter-spacing:.02em;line-height:1;margin-bottom:14px}
+.sec-sub{font-size:15px;color:var(--ink2);line-height:1.8;max-width:500px;margin-bottom:60px}
+
+/* step cards */
+.steps-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative}
+/* connector line between steps */
+.steps-row::before{
+  content:'';position:absolute;
+  top:36px;left:calc(16.66% + 24px);right:calc(16.66% + 24px);
+  height:1px;
+  background:linear-gradient(90deg,var(--or),rgba(255,92,0,.3),var(--or));
+  z-index:0;
+}
+.step{
+  background:var(--bg3);border:1px solid rgba(255,255,255,.07);
+  border-radius:20px;padding:32px;
+  position:relative;z-index:1;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s;
+  box-shadow:0 4px 24px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.04);
+}
+.step:hover{
+  transform:translateY(-8px);
+  border-color:rgba(255,92,0,.3);
+  box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px rgba(255,92,0,.15),0 0 30px rgba(255,92,0,.08);
+}
+.step-badge{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(255,92,0,.15) 0%,rgba(255,92,0,.06) 100%);
+  border:1px solid rgba(255,92,0,.25);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fh);font-size:26px;color:var(--or);
+  margin-bottom:20px;
+  box-shadow:0 4px 0 rgba(255,92,0,.1),0 6px 16px rgba(0,0,0,.3);
+  transition:transform .2s,box-shadow .2s;
+}
+.step:hover .step-badge{
+  transform:translateY(-4px);
+  box-shadow:0 8px 0 rgba(255,92,0,.12),0 12px 24px rgba(0,0,0,.4);
+}
+.step-num{position:absolute;top:20px;right:24px;font-family:var(--fh);font-size:52px;color:rgba(255,255,255,.03);line-height:1;pointer-events:none}
+.step-title{font-family:var(--fs);font-size:17px;font-weight:800;color:var(--ink);margin-bottom:10px}
+.step-desc{font-size:13px;color:var(--ink2);line-height:1.75}
+.step-link{display:inline-flex;align-items:center;gap:6px;margin-top:18px;font-size:12px;font-family:var(--fs);font-weight:700;color:var(--or);text-decoration:none;letter-spacing:.06em;transition:gap .2s}
+.step-link:hover{gap:12px}
+
+/* ══════════════════════
+   WHY NAVADHAR
+══════════════════════ */
+.benefits-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.benefit{
+  background:var(--bg3);border:1px solid rgba(255,255,255,.07);
+  border-radius:18px;padding:28px;
+  transition:transform .25s,box-shadow .25s,border-color .25s;
+  box-shadow:0 4px 20px rgba(0,0,0,.35);
   position:relative;overflow:hidden;
 }
-.sbar::before{
-  content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(90deg,transparent,transparent 100px,rgba(255,255,255,0.05) 100px,rgba(255,255,255,0.05) 101px);
+.benefit::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}
+.benefit:hover{
+  transform:translateY(-6px);border-color:rgba(255,92,0,.25);
+  box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 24px rgba(255,92,0,.07);
 }
-.sbar-inner{max-width:1160px;margin:0 auto;display:flex;gap:56px;position:relative}
-.si{display:flex;align-items:baseline;gap:10px;flex-shrink:0}
-.sv{font-family:var(--fh);font-size:36px;color:#fff;letter-spacing:.02em}
-.sl{font-size:11px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.08em;font-family:var(--fs);font-weight:700}
-
-/* ─── SECTIONS ─── */
-.wrap{max-width:1160px;margin:0 auto;padding:0 48px}
-.sec{padding:96px 0}
-.stag{
-  font-family:var(--fs);font-size:11px;font-weight:700;
-  letter-spacing:.18em;text-transform:uppercase;color:var(--or);
-  margin-bottom:12px;display:flex;align-items:center;gap:10px;
-}
-.stag::before{content:'';width:20px;height:2px;background:var(--or)}
-.stt{
-  font-family:var(--fh);font-size:52px;color:var(--ink);
-  margin-bottom:12px;letter-spacing:.02em;line-height:1;
-}
-.ssd{font-size:14px;color:var(--ink2);margin-bottom:48px;line-height:1.8;max-width:500px}
-
-/* ─── FORMULA CARDS ─── */
-.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:56px}
-.fc{
-  background:var(--bg2);border:1px solid rgba(255,255,255,0.07);
-  border-radius:16px;padding:28px;
-  box-shadow:var(--card-shadow);
-  transition:all .25s;cursor:default;position:relative;overflow:hidden;
-}
-.fc::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
-}
-.fc:hover{
-  border-color:rgba(255,92,0,0.3);
-  box-shadow:var(--card-shadow-hover);
-  transform:translateY(-6px) translateZ(0);
-  background:var(--bg3);
-}
-.fcn{
-  font-family:var(--fs);font-size:10px;font-weight:700;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--or);margin-bottom:14px;
-}
-.fct{font-family:var(--fs);font-size:15px;font-weight:700;color:var(--ink);margin-bottom:8px}
-.fcd{font-size:12px;color:var(--ink2);line-height:1.7}
-.fcf{
-  margin-top:14px;background:rgba(255,92,0,0.08);border-radius:7px;
-  padding:9px 13px;font-size:11px;font-family:'Courier New',monospace;
-  color:var(--or);border-left:3px solid var(--or);
-}
-
-/* ─── ZONE CARDS ─── */
-.zg{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:64px}
-.zc{
-  border-radius:18px;padding:28px 24px;text-decoration:none;display:block;
-  position:relative;overflow:hidden;cursor:pointer;
-  border:1px solid rgba(255,255,255,0.1);
-  transition:transform .1s ease,box-shadow .2s ease;
-  transform-style:preserve-3d;
-  will-change:transform;
-}
-.zc-glow{
-  position:absolute;inset:-2px;border-radius:20px;opacity:0;
-  transition:opacity .3s;pointer-events:none;
-}
-.zc:hover .zc-glow{opacity:1}
-.zc-shine{
-  position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,0.12) 0%,transparent 60%);
-  border-radius:18px;transition:opacity .3s;opacity:0;
-}
-.zc:hover .zc-shine{opacity:1}
-.zc-bg{position:absolute;inset:0;border-radius:18px}
-.zav{
-  width:52px;height:52px;border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--fh);font-weight:800;font-size:26px;
-  margin-bottom:16px;background:rgba(255,255,255,0.15);color:white;
-  position:relative;z-index:1;
-  box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.2);
-}
-.zn{font-family:var(--fh);font-size:22px;color:white;position:relative;z-index:1;margin-bottom:4px;letter-spacing:.03em}
-.zv{font-size:11px;margin-bottom:20px;color:rgba(255,255,255,0.6);position:relative;z-index:1;font-family:var(--fs);font-weight:600;letter-spacing:.06em}
-.zst{font-size:48px;font-family:var(--fh);color:white;position:relative;z-index:1;line-height:1;letter-spacing:.02em}
-.zsl{font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.07em;margin-top:4px;position:relative;z-index:1;font-family:var(--fs);font-weight:700}
-
-/* ─── HOW IT WORKS ─── */
-.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px}
-.sc{
-  background:var(--bg2);border:1px solid rgba(255,255,255,0.07);
-  border-radius:18px;padding:32px;
-  box-shadow:var(--card-shadow);
-  transition:all .25s;position:relative;overflow:hidden;
-}
-.sc::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,var(--or),transparent);
-  transform:scaleX(0);transform-origin:left;transition:transform .3s;
-}
-.sc:hover::after{transform:scaleX(1)}
-.sc:hover{border-color:rgba(255,92,0,0.2);transform:translateY(-6px);box-shadow:var(--card-shadow-hover)}
-.sc-num{
-  font-family:var(--fh);font-size:64px;color:rgba(255,255,255,0.04);
-  position:absolute;top:-8px;right:16px;line-height:1;pointer-events:none;letter-spacing:.02em;
-}
-.scn{font-family:var(--fs);font-size:10px;font-weight:700;color:var(--or);margin-bottom:10px;text-transform:uppercase;letter-spacing:.1em}
-.sct{font-family:var(--fs);font-size:17px;font-weight:700;margin-bottom:10px;color:var(--ink)}
-.scd{font-size:13px;color:var(--ink2);line-height:1.7}
-.scl{
-  display:inline-flex;align-items:center;gap:6px;margin-top:18px;
-  font-size:12px;color:var(--or);font-family:var(--fs);font-weight:700;
-  text-decoration:none;letter-spacing:.04em;
-  transition:gap .2s;
-}
-.scl:hover{gap:10px}
-
-/* ─── VERIFICATION GUARD BANNER ─── */
-.verify-banner{
-  position:fixed;bottom:0;left:0;right:0;z-index:500;
-  background:linear-gradient(135deg,#0d0d1a 0%,#141428 100%);
-  border-top:2px solid var(--or);
-  padding:20px 40px;
-  display:none;align-items:center;gap:20px;flex-wrap:wrap;
-  box-shadow:0 -8px 40px rgba(0,0,0,0.6),0 -2px 0 var(--or);
-  animation:slideup .4s ease;
-}
-@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.verify-banner.show{display:flex}
-.vb-icon{
+.benefit-icon{
   width:48px;height:48px;border-radius:12px;
-  background:rgba(255,92,0,0.15);border:1px solid rgba(255,92,0,0.4);
-  display:flex;align-items:center;justify-content:center;
-  font-size:22px;flex-shrink:0;
+  background:rgba(255,92,0,.1);border:1px solid rgba(255,92,0,.2);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  margin-bottom:16px;
+  box-shadow:0 4px 0 rgba(255,92,0,.08),0 6px 14px rgba(0,0,0,.3);
+  transition:transform .2s;
 }
-.vb-text{flex:1;min-width:200px}
-.vb-title{font-family:var(--fs);font-weight:800;font-size:14px;color:#fff;margin-bottom:3px}
-.vb-sub{font-size:12px;color:var(--ink2);line-height:1.5}
-.vb-sub b{color:var(--or)}
-.vb-actions{display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap}
-.vb-btn{
-  padding:10px 18px;border-radius:9px;font-family:var(--fs);
-  font-weight:700;font-size:12px;cursor:pointer;border:1px solid;
-  transition:all .2s;letter-spacing:.04em;
-}
-.vb-btn.wa{background:#25D366;color:#fff;border-color:#25D366}
-.vb-btn.wa:hover{background:#1ebe5d}
-.vb-btn.em{background:rgba(255,255,255,0.07);color:#fff;border-color:rgba(255,255,255,0.2)}
-.vb-btn.em:hover{background:rgba(255,255,255,0.12)}
-.vb-close{
-  width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.1);color:var(--ink2);
-  font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;flex-shrink:0;
-}
-.vb-close:hover{background:rgba(255,255,255,0.12);color:#fff}
+.benefit:hover .benefit-icon{transform:translateY(-3px)}
+.benefit-title{font-family:var(--fs);font-size:15px;font-weight:800;color:var(--ink);margin-bottom:8px}
+.benefit-desc{font-size:12.5px;color:var(--ink2);line-height:1.75}
 
-/* ─── FOOTER ─── */
-footer{
-  background:var(--bg2);border-top:1px solid rgba(255,255,255,0.07);
-  padding:36px 48px;display:flex;align-items:center;
-  justify-content:space-between;font-size:12px;color:var(--ink2);
+/* ══════════════════════
+   BIG CTA
+══════════════════════ */
+.cta-section{
+  padding:100px 52px;
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 50%,rgba(255,92,0,.08) 0%,transparent 70%),
+    var(--bg);
+  text-align:center;position:relative;overflow:hidden;z-index:1;
 }
-footer a{color:var(--ink2);text-decoration:none;transition:color .15s;font-family:var(--fs);font-weight:600;letter-spacing:.04em}
-footer a:hover{color:var(--or)}
-.fdiv{display:flex;gap:24px}
+.cta-section::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+.cta-inner{max-width:700px;margin:0 auto;position:relative;z-index:1}
+.cta-title{font-family:var(--fh);font-size:clamp(44px,6vw,72px);color:#fff;letter-spacing:.03em;line-height:.95;margin-bottom:16px}
+.cta-title span{color:var(--or);text-shadow:0 0 40px var(--or-g)}
+.cta-sub{font-size:16px;color:var(--ink2);line-height:1.8;margin-bottom:44px}
+.cta-btn-wrap{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+/* large version of primary button */
+.btn-primary.xl{padding:20px 48px;font-size:16px;border-radius:14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 -1px 0 rgba(0,0,0,.3) inset,0 8px 0 #7a2200,0 12px 28px rgba(255,92,0,.5),0 20px 50px rgba(0,0,0,.45)}
+.btn-primary.xl:hover{transform:translateY(-4px);
+  box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 -1px 0 rgba(0,0,0,.3) inset,0 12px 0 #7a2200,0 18px 40px rgba(255,92,0,.6),0 28px 64px rgba(0,0,0,.55)}
+.btn-primary.xl:active{transform:translateY(6px);
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 3px 0 #7a2200,0 4px 14px rgba(255,92,0,.3)}
+.cta-note{margin-top:20px;font-size:12px;color:var(--ink3);font-family:var(--fs);letter-spacing:.06em;text-transform:uppercase}
 
-/* ─── SCROLL REVEALS ─── */
-.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+/* ══════════════════════
+   FOOTER
+══════════════════════ */
+footer{background:var(--bg2);border-top:1px solid rgba(255,255,255,.07);padding:48px 52px 36px}
+.footer-inner{max-width:1200px;margin:0 auto}
+.footer-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:60px;margin-bottom:44px}
+.fl-brand{font-family:var(--fh);font-size:24px;color:var(--ink);letter-spacing:.08em;margin-bottom:10px}
+.fl-brand span{color:var(--or)}
+.fl-tagline{font-size:13px;color:var(--ink2);line-height:1.7;max-width:280px;margin-bottom:24px}
+.fl-h{font-family:var(--fs);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.16em;color:var(--or);margin-bottom:16px}
+.fl-link{display:block;font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;margin-bottom:9px;font-family:var(--fs);font-weight:600;letter-spacing:.04em;transition:color .2s}
+.fl-link:hover{color:var(--or)}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.06);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.footer-copy{font-size:11px;color:var(--ink3);font-family:var(--fs);letter-spacing:.04em}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
 .reveal.visible{opacity:1;transform:translateY(0)}
 
-/* ─── RESPONSIVE ─── */
-@media(max-width:960px){
-  .hero-inner{grid-template-columns:1fr;gap:60px}
-  h1.ht{font-size:64px}
-  .fg{grid-template-columns:1fr 1fr}
-  .zg{grid-template-columns:1fr 1fr}
-  .sg{grid-template-columns:1fr}
-  nav,.wrap,footer,.sbar{padding-left:24px;padding-right:24px}
-  .hero{padding:80px 24px 60px}
-  .grid3d{width:300px;height:300px}
+@media(max-width:1024px){
+  nav,.section,.stats-bar,.cta-section,footer{padding-left:28px;padding-right:28px}
+  .hero{padding:80px 28px 60px}.hero-inner{grid-template-columns:1fr;gap:48px}
+  .benefits-grid{grid-template-columns:1fr 1fr}
+  .steps-row{grid-template-columns:1fr}.steps-row::before{display:none}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:32px}
 }
-@media(max-width:560px){
-  .fg,.zg{grid-template-columns:1fr}
-  h1.ht{font-size:48px}
-  .stt{font-size:36px}
-  .sbar-inner{flex-wrap:wrap;gap:24px}
-  footer{flex-direction:column;gap:16px;text-align:center}
+@media(max-width:640px){
+  h1{font-size:52px}.scene-wrap{height:280px}
+  .benefits-grid{grid-template-columns:1fr}
+  .stats-inner{flex-wrap:wrap;gap:0}
+  .stat-item{padding:8px 20px;min-width:50%;border-right:none;border-bottom:1px solid rgba(255,255,255,.15)}
+  .footer-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 
-<!-- PARTICLES -->
-<div class="particles" id="particles"></div>
-
 <!-- NAV -->
 <nav>
   <a class="logo" href="./index.html">
-    <div class="lm">N</div>
-    <span class="lt">NAVADHAR</span>
+    <div class="logo-sq">N</div>
+    <span class="logo-name">NAVADHAR</span>
   </a>
-  <div class="nr">
-    <a class="nlink" href="./logic-engine.html">Logic Engine</a>
-    <a class="nlink" href="./driver-login.html">Driver Login</a>
-    <a class="nlink cta" href="./register.html">Register Business →</a>
+
+  <!-- shown when logged in -->
+  <div class="biz-pill" id="biz-pill">
+    <div class="biz-pill-av" id="biz-av">?</div>
+    <span class="biz-pill-name" id="biz-pill-name">Business</span>
+    <span class="biz-pill-zone" id="biz-pill-zone">—</span>
+  </div>
+
+  <div class="nav-r" id="nav-r">
+    <!-- populated by JS: either Dashboard or Register -->
   </div>
 </nav>
 
-<!-- STATS BAR -->
-<div class="sbar">
-  <div class="sbar-inner">
-    <div class="si"><span class="sv" id="st">0</span><span class="sl">Total Pickups</span></div>
-    <div class="si"><span class="sv" id="sn">0</span><span class="sl">North</span></div>
-    <div class="si"><span class="sv" id="se">0</span><span class="sl">East</span></div>
-    <div class="si"><span class="sv" id="ss">0</span><span class="sl">South</span></div>
-    <div class="si"><span class="sv" id="sw">0</span><span class="sl">West</span></div>
-  </div>
-</div>
-
-<!-- HERO -->
+<!-- ═══ HERO ═══ -->
 <div class="hero">
-  <div class="hero-grid-lines"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-orb"></div>
+
   <div class="hero-inner">
+    <!-- LEFT: HEADLINE + CTA -->
     <div>
-      <div class="hero-eyebrow">Jodhpur · B2B City Grid Delivery</div>
-      <h1 class="ht">Smart<br>Routes.<br><span>Every Zone.</span></h1>
-      <p class="hd">Navadhar divides Jodhpur into 4 delivery zones. Businesses pin their geo-location once. Vehicles collect center-outward and deliver farthest-inward — pure flow logistics.</p>
-      <div class="hbtns">
-        <a class="hbtn p" href="./register.html">
-          <span>Register Your Business</span>
-          <span>→</span>
+      <div class="hero-eyebrow"><div class="ey-dot"></div>Jodhpur · B2B Pickup Network · Est. 2025</div>
+      <h1>
+        DAILY<br>
+        <span class="h-accent">PICKUP.</span><br>
+        <span class="h-ghost">EVERY SHOP.</span>
+      </h1>
+      <p class="hero-desc">
+        Navadhar picks up your goods from your shop <strong>every business day</strong> and delivers them across Jodhpur. Built for traders, manufacturers &amp; exporters. <strong>Register once — we handle the rest.</strong>
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="./register.html" id="hero-primary-btn">
+          Register Your Business
+          <div class="btn-arrow">→</div>
         </a>
-        <a class="hbtn g" href="./logic-engine.html">Logic Engine</a>
+        <a class="btn btn-ghost" href="#how-it-works">See How It Works</a>
+      </div>
+      <div class="proof-row">
+        <div class="proof-item"><span class="proof-icon">✓</span>Free to register</div>
+        <div class="proof-item"><span class="proof-icon">✓</span>Daily pickup schedule</div>
+        <div class="proof-item"><span class="proof-icon">✓</span>GPS-pinned location</div>
       </div>
     </div>
 
-    <!-- 3D CITY GRID -->
-    <div class="grid3d-wrap">
-      <div class="grid3d" id="grid3d">
-        <div class="g3d-base"></div>
-        <div class="g3d-cross"></div>
+    <!-- RIGHT: ANIMATED TRUCK SCENE -->
+    <div class="scene-wrap">
+      <div class="scene-sky"></div>
 
-        <!-- North (top-left) -->
-        <div class="g3d-quad" style="top:0;left:0;transform:translateZ(8px)">
-          <div class="g3d-face" style="background:linear-gradient(135deg,rgba(108,43,217,0.35) 0%,rgba(108,43,217,0.15) 100%);border-color:rgba(108,43,217,0.4)">
-            <div class="g3d-count" id="gc-n">0</div>
-            <div class="g3d-label">N</div>
-            <div class="g3d-sub">North Zone</div>
-          </div>
+      <!-- stars (CSS drawn) -->
+      <svg class="scene-stars" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="20" r="1" fill="rgba(255,255,255,.6)"/>
+        <circle cx="120" cy="45" r=".8" fill="rgba(255,255,255,.4)"/>
+        <circle cx="200" cy="15" r="1.2" fill="rgba(255,255,255,.7)"/>
+        <circle cx="280" cy="35" r=".7" fill="rgba(255,255,255,.4)"/>
+        <circle cx="350" cy="10" r="1" fill="rgba(255,255,255,.5)"/>
+        <circle cx="420" cy="50" r=".9" fill="rgba(255,255,255,.4)"/>
+        <circle cx="500" cy="22" r="1.1" fill="rgba(255,255,255,.6)"/>
+        <circle cx="560" cy="40" r=".8" fill="rgba(255,255,255,.5)"/>
+        <circle cx="70" cy="60" r=".7" fill="rgba(255,255,255,.3)"/>
+        <circle cx="160" cy="70" r=".9" fill="rgba(255,255,255,.4)"/>
+        <circle cx="310" cy="65" r=".8" fill="rgba(255,255,255,.35)"/>
+        <circle cx="460" cy="75" r="1" fill="rgba(255,255,255,.4)"/>
+        <!-- moon -->
+        <circle cx="540" cy="28" r="12" fill="rgba(255,255,240,.06)"/>
+        <circle cx="546" cy="24" r="10" fill="#0a0a18"/>
+      </svg>
+
+      <!-- city skyline -->
+      <div class="scene-city">
+        <svg width="100%" height="150" viewBox="0 0 700 150" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+          <!-- far buildings — very dark, slight blue tint -->
+          <rect x="0"   y="90"  width="50"  height="60"  fill="#0e0e20"/>
+          <rect x="10"  y="70"  width="16"  height="20"  fill="#0e0e20"/>
+          <rect x="60"  y="75"  width="70"  height="75"  fill="#0c0c1e"/>
+          <rect x="70"  y="55"  width="18"  height="22"  fill="#0e0e20"/>
+          <rect x="95"  y="60"  width="14"  height="18"  fill="#0e0e20"/>
+          <rect x="140" y="85"  width="55"  height="65"  fill="#0d0d1e"/>
+          <rect x="150" y="65"  width="12"  height="22"  fill="#10101e"/>
+          <rect x="205" y="70"  width="80"  height="80"  fill="#0b0b1c"/>
+          <rect x="215" y="48"  width="22"  height="24"  fill="#0e0e20"/>
+          <rect x="245" y="55"  width="16"  height="18"  fill="#0e0e20"/>
+          <rect x="295" y="78"  width="65"  height="72"  fill="#0c0c1e"/>
+          <rect x="305" y="50"  width="20"  height="30"  fill="#0f0f1e"/>
+          <rect x="370" y="88"  width="90"  height="62"  fill="#0b0b1c"/>
+          <rect x="380" y="60"  width="24"  height="30"  fill="#0e0e20"/>
+          <rect x="415" y="70"  width="16"  height="20"  fill="#0e0e20"/>
+          <rect x="470" y="80"  width="60"  height="70"  fill="#0d0d1e"/>
+          <rect x="480" y="55"  width="18"  height="28"  fill="#0f0f1e"/>
+          <rect x="540" y="90"  width="80"  height="60"  fill="#0c0c1e"/>
+          <rect x="550" y="65"  width="20"  height="27"  fill="#0e0e20"/>
+          <rect x="580" y="72"  width="14"  height="22"  fill="#0e0e20"/>
+          <rect x="630" y="82"  width="70"  height="68"  fill="#0b0b1c"/>
+          <rect x="640" y="52"  width="22"  height="32"  fill="#0f0f1e"/>
+          <!-- orange lit windows -->
+          <rect x="63"  y="82"  width="12" height="9" fill="rgba(255,92,0,.18)" rx="1"/>
+          <rect x="85"  y="82"  width="12" height="9" fill="rgba(255,92,0,.12)" rx="1"/>
+          <rect x="63"  y="100" width="12" height="9" fill="rgba(255,92,0,.08)" rx="1"/>
+          <rect x="210" y="76"  width="14" height="10" fill="rgba(255,92,0,.2)"  rx="1"/>
+          <rect x="234" y="76"  width="14" height="10" fill="rgba(255,92,0,.14)" rx="1"/>
+          <rect x="210" y="96"  width="14" height="10" fill="rgba(255,92,0,.1)"  rx="1"/>
+          <rect x="298" y="84"  width="12" height="9"  fill="rgba(255,92,0,.16)" rx="1"/>
+          <rect x="320" y="84"  width="12" height="9"  fill="rgba(255,92,0,.22)" rx="1"/>
+          <rect x="376" y="94"  width="16" height="10" fill="rgba(255,92,0,.18)" rx="1"/>
+          <rect x="402" y="94"  width="16" height="10" fill="rgba(255,92,0,.12)" rx="1"/>
+          <rect x="376" y="114" width="16" height="10" fill="rgba(255,92,0,.08)" rx="1"/>
+          <rect x="474" y="86"  width="12" height="9"  fill="rgba(255,92,0,.2)"  rx="1"/>
+          <rect x="494" y="86"  width="12" height="9"  fill="rgba(255,92,0,.14)" rx="1"/>
+          <!-- chimney smoke hint -->
+          <ellipse cx="80"  cy="54" rx="6" ry="4" fill="rgba(255,255,255,.04)"/>
+          <ellipse cx="224" cy="47" rx="7" ry="5" fill="rgba(255,255,255,.03)"/>
+          <ellipse cx="316" cy="49" rx="6" ry="4" fill="rgba(255,255,255,.04)"/>
+          <ellipse cx="652" cy="51" rx="7" ry="5" fill="rgba(255,255,255,.03)"/>
+        </svg>
+      </div>
+
+      <!-- road layers -->
+      <div class="road-far"></div>
+      <div class="road-near">
+        <div class="road-center-line"></div>
+        <div class="road-edge"></div>
+        <div class="road-shadow"></div>
+      </div>
+
+      <!-- truck -->
+      <div class="truck-container">
+        <div class="truck-shadow"></div>
+        <div class="truck-body">
+          <!-- headlight beam -->
+          <div class="headlight-beam"></div>
+
+          <!-- exhaust puffs -->
+          <div class="exhaust-puff" style="right:250px;top:28px;width:14px;height:14px;animation-duration:1.2s;animation-delay:0s"></div>
+          <div class="exhaust-puff" style="right:248px;top:30px;width:10px;height:10px;animation-duration:1s;animation-delay:.4s"></div>
+          <div class="exhaust-puff" style="right:252px;top:26px;width:8px;height:8px;animation-duration:1.4s;animation-delay:.7s"></div>
+
+          <svg width="260" height="90" viewBox="0 0 260 90" xmlns="http://www.w3.org/2000/svg">
+            <!-- cargo trailer shadow -->
+            <ellipse cx="90" cy="86" rx="85" ry="5" fill="rgba(0,0,0,.3)"/>
+
+            <!-- cargo body -->
+            <rect x="2" y="12" width="160" height="64" rx="4" fill="#1c1c2e" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+            <!-- cargo top panel -->
+            <rect x="2" y="12" width="160" height="10" rx="4" fill="#222236"/>
+            <!-- orange accent stripe -->
+            <rect x="2" y="16" width="160" height="5" fill="var(--or)" opacity=".9"/>
+            <!-- rivets top -->
+            <circle cx="12" cy="14" r="1.5" fill="rgba(255,255,255,.15)"/>
+            <circle cx="155" cy="14" r="1.5" fill="rgba(255,255,255,.15)"/>
+            <!-- Navadhar branding on cargo -->
+            <rect x="8" y="26" width="34" height="28" rx="3" fill="var(--or)" opacity=".95"/>
+            <text x="25" y="45" font-family="sans-serif" font-weight="900" font-size="16" fill="white" text-anchor="middle" dominant-baseline="middle">N</text>
+            <!-- cargo panel lines -->
+            <line x1="60" y1="12" x2="60" y2="76" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+            <line x1="110" y1="12" x2="110" y2="76" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+            <!-- door handle -->
+            <rect x="153" y="42" width="6" height="10" rx="2" fill="rgba(255,255,255,.2)"/>
+            <!-- reflective strip bottom -->
+            <rect x="2" y="72" width="160" height="4" rx="0" fill="rgba(255,92,0,.25)"/>
+
+            <!-- cab shadow -->
+            <ellipse cx="215" cy="86" rx="36" ry="4" fill="rgba(0,0,0,.25)"/>
+            <!-- cab body -->
+            <rect x="163" y="26" width="75" height="50" rx="5" fill="#18182c" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+            <!-- cab top -->
+            <rect x="163" y="26" width="75" height="8" rx="5" fill="#202036"/>
+            <rect x="163" y="28" width="75" height="5" fill="var(--or)" opacity=".85"/>
+            <!-- cab air deflector -->
+            <rect x="163" y="18" width="75" height="12" rx="3" fill="#1e1e30" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+            <!-- windshield -->
+            <rect x="180" y="30" width="42" height="24" rx="3" fill="rgba(2,132,199,.3)" stroke="rgba(2,132,199,.35)" stroke-width="1"/>
+            <!-- windshield reflection -->
+            <rect x="182" y="31" width="10" height="4" rx="1" fill="rgba(255,255,255,.1)"/>
+            <!-- door -->
+            <rect x="165" y="36" width="13" height="30" rx="2" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+            <!-- door handle -->
+            <rect x="174" y="51" width="4" height="7" rx="1" fill="rgba(255,255,255,.2)"/>
+            <!-- headlights -->
+            <rect x="232" y="32" width="8" height="6" rx="2" fill="#fffde0" opacity=".9"/>
+            <rect x="232" y="42" width="8" height="4" rx="1" fill="rgba(255,150,0,.6)"/>
+            <!-- bumper -->
+            <rect x="232" y="62" width="8" height="10" rx="2" fill="#222236" stroke="rgba(255,92,0,.3)" stroke-width="1"/>
+            <!-- front grill -->
+            <rect x="232" y="50" width="8" height="10" rx="1" fill="#111120"/>
+            <line x1="234" y1="50" x2="234" y2="60" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+            <line x1="237" y1="50" x2="237" y2="60" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+            <!-- exhaust pipe -->
+            <rect x="228" y="16" width="7" height="16" rx="2" fill="#1a1a28" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+
+            <!-- wheels with rims -->
+            <!-- rear axle -->
+            <circle cx="35"  cy="80" r="14" fill="#0d0d18" stroke="#333" stroke-width="2"/>
+            <circle cx="35"  cy="80" r="8"  fill="#1a1a28"/>
+            <circle cx="35"  cy="80" r="3"  fill="#333"/>
+            <line x1="35" y1="66" x2="35" y2="94" stroke="rgba(255,255,255,.08)" stroke-width="1.5" class="wheel"/>
+            <line x1="21" y1="80" x2="49" y2="80" stroke="rgba(255,255,255,.08)" stroke-width="1.5" class="wheel"/>
+            <circle cx="35"  cy="80" r="14" fill="none" stroke="var(--or)" stroke-width="1.5" opacity=".6"/>
+
+            <circle cx="110" cy="80" r="14" fill="#0d0d18" stroke="#333" stroke-width="2"/>
+            <circle cx="110" cy="80" r="8"  fill="#1a1a28"/>
+            <circle cx="110" cy="80" r="3"  fill="#333"/>
+            <line x1="110" y1="66" x2="110" y2="94" stroke="rgba(255,255,255,.08)" stroke-width="1.5" class="wheel"/>
+            <line x1="96"  y1="80" x2="124" y2="80" stroke="rgba(255,255,255,.08)" stroke-width="1.5" class="wheel"/>
+            <circle cx="110" cy="80" r="14" fill="none" stroke="var(--or)" stroke-width="1.5" opacity=".6"/>
+
+            <!-- front wheel (cab) -->
+            <circle cx="205" cy="80" r="12" fill="#0d0d18" stroke="#333" stroke-width="2"/>
+            <circle cx="205" cy="80" r="7"  fill="#1a1a28"/>
+            <circle cx="205" cy="80" r="2.5" fill="#333"/>
+            <line x1="205" y1="68" x2="205" y2="92" stroke="rgba(255,255,255,.08)" stroke-width="1.5" class="wheel"/>
+            <line x1="193" y1="80" x2="217" y2="80" stroke="rgba(255,255,255,.08)" stroke-width="1.5" class="wheel"/>
+            <circle cx="205" cy="80" r="12" fill="none" stroke="var(--or)" stroke-width="1.5" opacity=".6"/>
+
+            <!-- axle connector between rear wheels -->
+            <rect x="23" y="78" width="100" height="4" rx="2" fill="#111120"/>
+          </svg>
         </div>
+      </div>
 
-        <!-- East (top-right) -->
-        <div class="g3d-quad" style="top:0;right:0;transform:translateZ(5px)">
-          <div class="g3d-face" style="background:linear-gradient(135deg,rgba(2,132,199,0.35) 0%,rgba(2,132,199,0.15) 100%);border-color:rgba(2,132,199,0.4)">
-            <div class="g3d-count" id="gc-e">0</div>
-            <div class="g3d-label">E</div>
-            <div class="g3d-sub">East Zone</div>
-          </div>
-        </div>
+      <!-- distant truck (smaller, further back — parallax) -->
+      <div class="truck-container" style="animation-duration:9s;animation-delay:-3s;bottom:82px;transform:scale(.45);transform-origin:bottom left;opacity:.35;filter:blur(.5px)">
+        <svg width="260" height="90" viewBox="0 0 260 90" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="12" width="160" height="64" rx="4" fill="#1c1c2e"/>
+          <rect x="2" y="16" width="160" height="5" fill="var(--or)"/>
+          <rect x="8" y="26" width="34" height="28" rx="3" fill="var(--or)"/>
+          <text x="25" y="45" font-family="sans-serif" font-weight="900" font-size="16" fill="white" text-anchor="middle" dominant-baseline="middle">N</text>
+          <rect x="163" y="26" width="75" height="50" rx="5" fill="#18182c"/>
+          <rect x="163" y="28" width="75" height="5" fill="var(--or)"/>
+          <rect x="180" y="30" width="42" height="24" rx="3" fill="rgba(2,132,199,.3)"/>
+          <circle cx="35"  cy="80" r="14" fill="#0d0d18" stroke="rgba(255,92,0,.5)" stroke-width="1.5"/>
+          <circle cx="110" cy="80" r="14" fill="#0d0d18" stroke="rgba(255,92,0,.5)" stroke-width="1.5"/>
+          <circle cx="205" cy="80" r="12" fill="#0d0d18" stroke="rgba(255,92,0,.5)" stroke-width="1.5"/>
+        </svg>
+      </div>
 
-        <!-- West (bottom-left) -->
-        <div class="g3d-quad" style="bottom:0;left:0;transform:translateZ(5px)">
-          <div class="g3d-face" style="background:linear-gradient(135deg,rgba(217,119,6,0.35) 0%,rgba(217,119,6,0.15) 100%);border-color:rgba(217,119,6,0.4)">
-            <div class="g3d-count" id="gc-w">0</div>
-            <div class="g3d-label">W</div>
-            <div class="g3d-sub">West Zone</div>
-          </div>
-        </div>
+      <div class="scene-label">Navadhar Fleet · Jodhpur</div>
+      <div class="scene-live"><div class="live-dot"></div>Daily Route Active</div>
 
-        <!-- South (bottom-right) -->
-        <div class="g3d-quad" style="bottom:0;right:0;transform:translateZ(2px)">
-          <div class="g3d-face" style="background:linear-gradient(135deg,rgba(220,38,38,0.35) 0%,rgba(220,38,38,0.15) 100%);border-color:rgba(220,38,38,0.4)">
-            <div class="g3d-count" id="gc-s">0</div>
-            <div class="g3d-label">S</div>
-            <div class="g3d-sub">South Zone</div>
-          </div>
-        </div>
+      <!-- road distance markers -->
+      <div class="road-marker" style="left:18%">●</div>
+      <div class="road-marker" style="left:50%">●</div>
+      <div class="road-marker" style="left:82%">●</div>
+    </div>
+  </div>
+</div>
 
-        <!-- Business dots placed by JS -->
-        <div id="g3d-dots"></div>
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item"><span class="stat-v" id="s-total">0</span><span class="stat-l">Businesses Registered</span></div>
+    <div class="stat-item"><span class="stat-v" id="s-verified">0</span><span class="stat-l">Active & Verified</span></div>
+    <div class="stat-item"><span class="stat-v">4</span><span class="stat-l">Dedicated Vehicles</span></div>
+    <div class="stat-item"><span class="stat-v">Daily</span><span class="stat-l">Pickup Schedule</span></div>
+  </div>
+</div>
 
-        <div class="g3d-center"></div>
+<!-- HOW IT WORKS -->
+<div class="section" id="how-it-works">
+  <div class="sec-inner reveal">
+    <div class="sec-tag">Simple Process</div>
+    <div class="sec-title">Three steps to daily pickup</div>
+    <p class="sec-sub">No complicated setup. Register your business, we pin your location, and your goods get collected every morning.</p>
+    <div class="steps-row">
+      <div class="step">
+        <div class="step-badge">📍</div>
+        <div class="step-num">01</div>
+        <div class="step-title">Register Your Business</div>
+        <p class="step-desc">Enter your WhatsApp number, verify your account, and fill in your shop details. We pin your exact location so our vehicle finds you every time — no address confusion, ever.</p>
+        <a class="step-link" href="./register.html">Register now <span>→</span></a>
+      </div>
+      <div class="step">
+        <div class="step-badge">🚚</div>
+        <div class="step-num">02</div>
+        <div class="step-title">We Collect Your Goods</div>
+        <p class="step-desc">Print a Navadhar shipment label from your dashboard and stick it on your package. Our vehicle arrives at your shop daily within your pickup window. One scan — goods collected.</p>
+        <a class="step-link" href="./dashboard.html">See your dashboard <span>→</span></a>
+      </div>
+      <div class="step">
+        <div class="step-badge">✅</div>
+        <div class="step-num">03</div>
+        <div class="step-title">Track & Confirm Delivery</div>
+        <p class="step-desc">Your dashboard shows live pickup status — from Scheduled to Collected to Delivered. Your customers get their goods. You get peace of mind. Every business day.</p>
+        <a class="step-link" href="./dashboard.html">Track status <span>→</span></a>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MAIN CONTENT -->
-<div class="wrap">
-
-  <!-- FORMULA -->
-  <div class="sec reveal">
-    <div class="stag">The System Formula</div>
-    <div class="stt">How the routing formula works</div>
-    <div class="ssd">Every pickup and delivery follows Haversine distance from Ghanta Ghar. No guesswork — pure geometry and flow logic.</div>
-    <div class="fg">
-      <div class="fc"><div class="fcn">01 — Zone Detection</div><div class="fct">Geographic Classification</div><div class="fcd">Every location classified into N/E/S/W by comparing absolute lat/lng delta from city center.</div><div class="fcf">|ΔLat| &gt; |ΔLng| → N or S</div></div>
-      <div class="fc"><div class="fcn">02 — Distance</div><div class="fct">Haversine Formula</div><div class="fcd">Great-circle distance in meters from each business to city center. Accounts for Earth's curvature.</div><div class="fcf">d = 2R · arctan(√a / √(1−a))</div></div>
-      <div class="fc"><div class="fcn">03 — Pickup Order</div><div class="fct">Center → Outward</div><div class="fcd">Stops sorted ascending by distance. Vehicle starts at center and collects outward — nearest first.</div><div class="fcf">Route: Center → d₁ → d₂ → dₙ</div></div>
-      <div class="fc"><div class="fcn">04 — Delivery Order</div><div class="fct">Outward → Inward</div><div class="fcd">Delivery is the exact reverse — start at farthest business and work back toward city center.</div><div class="fcf">Route: dₙ → d₂ → d₁ → Center</div></div>
-      <div class="fc"><div class="fcn">05 — Zone Isolation</div><div class="fct">No Cross-Zone Routes</div><div class="fcd">Each zone operates independently. North vehicle handles only North stops. No cross-zone zig-zag allowed.</div><div class="fcf">∀ stop ∈ Zone Z → vehicles[Z]</div></div>
-      <div class="fc"><div class="fcn">06 — Geo-Tag</div><div class="fct">Tap-to-Register</div><div class="fcd">Businesses tap their exact location on a live map. GPS coordinates auto-assign to the correct zone.</div><div class="fcf">zone = f(lat, lng, CENTER)</div></div>
-    </div>
-  </div>
-
-  <!-- ZONES -->
-  <div class="sec reveal" style="padding-top:0">
-    <div class="stag">Active Zones</div>
-    <div class="stt">Four zones. Four vehicles. One city.</div>
-    <div class="zg" id="zg"></div>
-  </div>
-
-  <!-- HOW IT WORKS -->
-  <div class="sec reveal" style="padding-top:0">
-    <div class="stag">Get Started</div>
-    <div class="stt">Three steps to delivery</div>
-    <div class="sg">
-      <div class="sc">
-        <div class="sc-num">01</div>
-        <div class="scn">Step 01 — Business</div>
-        <div class="sct">Register your shop location</div>
-        <div class="scd">Open the registration page, tap your exact location on the map, fill your details, and submit. Auto-assigned to a zone instantly.</div>
-        <a class="scl" href="./register.html">Register now <span>→</span></a>
+<!-- WHY NAVADHAR -->
+<div class="section dark">
+  <div class="sec-inner reveal">
+    <div class="sec-tag">Why Navadhar</div>
+    <div class="sec-title">Built for Jodhpur's traders</div>
+    <p class="sec-sub">Every feature was designed around how goods actually move between businesses in this city.</p>
+    <div class="benefits-grid">
+      <div class="benefit">
+        <div class="benefit-icon">📍</div>
+        <div class="benefit-title">Your Shop, Pinned Forever</div>
+        <p class="benefit-desc">Register your location once on the map. Our driver navigates directly to your exact spot every single day — no wrong turns, no missed pickups.</p>
       </div>
-      <div class="sc">
-        <div class="sc-num">02</div>
-        <div class="scn">Step 02 — Admin</div>
-        <div class="sct">Review &amp; manage all pickups</div>
-        <div class="scd">The admin dashboard shows all registered businesses sorted by zone and distance. Assign vehicles, export routes, manage daily ops.</div>
-        <a class="scl" href="./admin.html">Open admin <span>→</span></a>
+      <div class="benefit">
+        <div class="benefit-icon">🏷️</div>
+        <div class="benefit-title">Shipment Labels — No Mix-ups</div>
+        <p class="benefit-desc">Print a QR label from your phone in seconds. Your goods are identified instantly on scan. No packages lost, no confusion between businesses.</p>
       </div>
-      <div class="sc">
-        <div class="sc-num">03</div>
-        <div class="scn">Step 03 — Driver</div>
-        <div class="sct">Follow the live map route</div>
-        <div class="scd">Each driver gets their zone page with a live Jodhpur map, numbered pickup markers, lettered delivery markers, and one-tap navigation.</div>
-        <a class="scl" href="./driver-login.html">View driver <span>→</span></a>
+      <div class="benefit">
+        <div class="benefit-icon">📱</div>
+        <div class="benefit-title">WhatsApp Verification</div>
+        <p class="benefit-desc">Register and verify entirely through WhatsApp — no app to download, no email needed. The way Jodhpur's traders already communicate.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">📦</div>
+        <div class="benefit-title">Set Your Delivery Destination</div>
+        <p class="benefit-desc">Tell us where to send your goods each morning — type an address or detect your location. Save a default for recurring deliveries or change it daily.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">🔒</div>
+        <div class="benefit-title">Verified Drivers Only</div>
+        <p class="benefit-desc">Every driver submits their licence, RC, Aadhaar, and photos before activation. Admin-approved before they handle a single pickup. Your goods are in verified hands.</p>
+      </div>
+      <div class="benefit">
+        <div class="benefit-icon">⚡</div>
+        <div class="benefit-title">Same-Day Delivery</div>
+        <p class="benefit-desc">Goods collected in the morning are delivered the same day. Dedicated vehicles run optimized routes so your customers receive their orders without delay.</p>
       </div>
     </div>
   </div>
+</div>
 
+<!-- BIG CTA -->
+<div class="cta-section">
+  <div class="cta-inner reveal">
+    <div class="cta-title">Ready to move<br><span>your goods?</span></div>
+    <p class="cta-sub">Register your business for free. Pin your shop location once. We'll collect your goods every morning — starting tomorrow.</p>
+    <div class="cta-btn-wrap">
+      <a class="btn btn-primary xl" href="./register.html">
+        Register Your Business Free
+        <div class="btn-arrow" style="width:30px;height:30px;font-size:16px">→</div>
+      </a>
+    </div>
+    <div class="cta-note">Free registration · No upfront cost · Daily pickup</div>
+  </div>
 </div>
 
 <!-- FOOTER -->
 <footer>
-  <span>© 2025 Navadhar · Jodhpur B2B City Grid Delivery</span>
-  <div class="fdiv">
-    <a href="./register.html">Register</a>
-    <a href="./logic-engine.html">Logic Engine</a>
-    <a href="./driver-login.html">Drivers</a>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div class="fl-brand">NAVA<span>DHAR</span></div>
+        <p class="fl-tagline">Jodhpur's daily B2B pickup network. GPS-pinned locations, dedicated vehicles, same-day delivery — every business day.</p>
+        <a class="btn btn-ghost btn-sm" href="./register.html">Register Your Business →</a>
+      </div>
+      <div>
+        <div class="fl-h">For Businesses</div>
+        <a class="fl-link" href="./register.html">Register Your Shop</a>
+        <a class="fl-link" href="./dashboard.html">Business Dashboard</a>
+        <a class="fl-link" href="./label.html">Print Shipment Label</a>
+        <a class="fl-link" href="./verify.html">Verify Account</a>
+      </div>
+      <div>
+        <div class="fl-h">Operations</div>
+        <a class="fl-link" href="./driver-login.html">Driver Portal</a>
+        <a class="fl-link" href="./admin.html">Admin Dashboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2025 Navadhar · Jodhpur B2B City Grid Delivery</div>
+      <div style="font-size:11px;color:var(--ink3);font-family:var(--fs);letter-spacing:.08em">DAILY PICKUP · 4 VEHICLES · JODHPUR</div>
+    </div>
   </div>
 </footer>
 
-<!-- ─── VERIFICATION GUARD BANNER ─── -->
-<div class="verify-banner" id="verify-banner">
-  <div class="vb-icon">⚠️</div>
-  <div class="vb-text">
-    <div class="vb-title">Account Not Verified — <span id="vb-bizid" style="color:var(--or)"></span></div>
-    <div class="vb-sub">Your business is registered but not yet verified. Tap your verification link to activate your account. <b>Links expire after 24 hours.</b></div>
-  </div>
-  <div class="vb-actions">
-    <button class="vb-btn wa" id="vb-wa-btn" onclick="resendViaWA()">💬 Resend via WhatsApp</button>
-    <button class="vb-btn em" id="vb-em-btn" onclick="resendViaEmail()">✉️ Resend via Email</button>
-  </div>
-  <button class="vb-close" onclick="dismissBanner()" title="Dismiss">✕</button>
-</div>
-
 <script>
-// ─── PARTICLES ───
-(function(){
-  const wrap=document.getElementById('particles');
-  for(let i=0;i<18;i++){
-    const p=document.createElement('div');
-    p.className='p';
-    p.style.cssText=`left:${Math.random()*100}%;animation-duration:${8+Math.random()*14}s;animation-delay:${Math.random()*12}s;opacity:${0.2+Math.random()*0.5};width:${1+Math.random()*2}px;height:${1+Math.random()*2}px`;
-    wrap.appendChild(p);
-  }
-})();
+// scroll reveal
+var obs=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
 
-// ─── SCROLL REVEAL ───
-const obs=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
-},{threshold:.12});
-document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
-
-// ─── ZONE CARD TILT ───
-function initTilt(){
-  document.querySelectorAll('.zc').forEach(card=>{
-    card.addEventListener('mousemove',e=>{
-      const r=card.getBoundingClientRect();
-      const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
-      const tx=(x-.5)*16,ty=(y-.5)*-16;
-      card.style.transform=`perspective(600px) rotateX(${ty}deg) rotateY(${tx}deg) translateZ(4px)`;
-      card.style.setProperty('--mx',(x*100)+'%');
-      card.style.setProperty('--my',(y*100)+'%');
-    });
-    card.addEventListener('mouseleave',()=>{
-      card.style.transform='perspective(600px) rotateX(0) rotateY(0) translateZ(0)';
-    });
-  });
-}
-
-// ─── RENDER DATA ───
+// stats
 function renderStats(){
-  const all=loadPickups();
-  const n=all.filter(p=>p.zone==='North').length;
-  const e=all.filter(p=>p.zone==='East').length;
-  const s=all.filter(p=>p.zone==='South').length;
-  const w=all.filter(p=>p.zone==='West').length;
-  document.getElementById('st').textContent=n+e+s+w;
-  document.getElementById('sn').textContent=n;
-  document.getElementById('se').textContent=e;
-  document.getElementById('ss').textContent=s;
-  document.getElementById('sw').textContent=w;
-  // 3D grid counts
-  document.getElementById('gc-n').textContent=n||'';
-  document.getElementById('gc-e').textContent=e||'';
-  document.getElementById('gc-s').textContent=s||'';
-  document.getElementById('gc-w').textContent=w||'';
+  var all=loadPickups();
+  document.getElementById('s-total').textContent=all.length;
+  document.getElementById('s-verified').textContent=all.filter(function(p){return p.verified;}).length;
 }
 
-function renderZones(){
-  const all=loadPickups();
-  const zd=[
-    {z:'North',c:'linear-gradient(135deg,#4c1d95 0%,#6C2BD9 100%)',glow:'rgba(108,43,217,0.5)',pg:'./driver-login.html'},
-    {z:'East', c:'linear-gradient(135deg,#0c4a6e 0%,#0284C7 100%)',glow:'rgba(2,132,199,0.5)',pg:'./driver-login.html'},
-    {z:'South',c:'linear-gradient(135deg,#7f1d1d 0%,#DC2626 100%)',glow:'rgba(220,38,38,0.5)',pg:'./driver-login.html'},
-    {z:'West', c:'linear-gradient(135deg,#78350f 0%,#D97706 100%)',glow:'rgba(217,119,6,0.5)',pg:'./driver-login.html'},
-  ];
-  document.getElementById('zg').innerHTML=zd.map(({z,c,glow,pg})=>{
-    const m=ZONE_META[z],cnt=all.filter(p=>p.zone===z).length;
-    return `<a class="zc" href="${pg}" style="background:${c}">
-      <div class="zc-bg"></div>
-      <div class="zc-glow" style="box-shadow:0 0 40px 8px ${glow}"></div>
-      <div class="zc-shine"></div>
-      <div class="zav">${m.label}</div>
-      <div class="zn">${z} Zone</div>
-      <div class="zv">${m.vehicles[0]}</div>
-      <div class="zst">${cnt}</div>
-      <div class="zsl">stops today</div>
-    </a>`;
-  }).join('');
-  initTilt();
-}
+// nav: show logged-in business pill
+function renderNav(){
+  var biz=getActiveBiz();
+  var navR=document.getElementById('nav-r');
+  var pill=document.getElementById('biz-pill');
 
-function renderGrid3dDots(){
-  const all=loadPickups();
-  const wrap=document.getElementById('g3d-dots');
-  const W=380,H=380,CX=W/2,CY=H/2,R=170;
-  wrap.innerHTML=all.map(p=>{
-    const dLat=p.lat-CENTER.lat,dLng=p.lng-CENTER.lng;
-    const px=CX+(dLng/0.13)*R*.8;
-    const py=CY-(dLat/0.13)*R*.8;
-    if(px<4||px>W-4||py<4||py>H-4)return '';
-    const col=ZONE_META[p.zone]?.solid||'#fff';
-    return `<div class="g3d-dot" style="left:${px-4}px;top:${py-4}px;background:${col};box-shadow:0 0 6px ${col};animation-delay:${Math.random()*2}s"></div>`;
-  }).join('');
-}
-
-// ─── VERIFICATION GUARD ───
-// Check if there's any unverified business in localStorage
-// (In a real system this would be tied to the logged-in session — here we check the most recent unverified entry)
-var _unverifiedBiz=null;
-var _verifyWaUrl='';
-var _verifyEmailSubject='';
-var _verifyEmailBody='';
-
-function checkVerification(){
-  const all=loadPickups();
-  if(!all.length)return;
-
-  // Find most recent unverified business
-  const unverified=all.filter(p=>!p.verified);
-  if(!unverified.length)return;
-
-  const biz=unverified[unverified.length-1]; // most recent
-  _unverifiedBiz=biz;
-
-  // Rebuild verification link from pending tokens
-  const pending=JSON.parse(localStorage.getItem('nvd_pending_verify')||'[]');
-  const tok=pending.find(p=>p.bizId===biz.bizId);
-
-  let verifyUrl='#';
-  if(tok){
-    const base=window.location.origin+window.location.pathname.replace('index.html','');
-    verifyUrl=base+'verify.html?token='+tok.token+'&id='+biz.bizId;
+  if(biz){
+    // Show biz pill
+    pill.classList.add('show');
+    document.getElementById('biz-av').textContent=(biz.biz||'?').charAt(0).toUpperCase();
+    document.getElementById('biz-pill-name').textContent=biz.biz||biz.bizId;
+    document.getElementById('biz-pill-zone').textContent=biz.bizId;
+    // Nav right: Dashboard button
+    navR.innerHTML='<a class="btn btn-primary" href="./dashboard.html" style="padding:10px 20px;font-size:12px;border-radius:9px;box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 3px 0 #7a2200,0 5px 14px rgba(255,92,0,.4)">My Dashboard <span style="margin-left:4px">→</span></a>';
+    // Update hero CTA
+    var heroBtn=document.getElementById('hero-primary-btn');
+    if(heroBtn){heroBtn.textContent='Go to My Dashboard →';heroBtn.href='./dashboard.html';}
+  } else {
+    pill.classList.remove('show');
+    navR.innerHTML='<a class="btn btn-primary" href="./register.html" style="padding:10px 20px;font-size:12px;border-radius:9px;box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 3px 0 #7a2200,0 5px 14px rgba(255,92,0,.4)">Register Your Business <span style="margin-left:4px">→</span></a>';
   }
-
-  // Build WA message
-  const name=biz.owner||'there';
-  const waMsg=
-    'Hello '+name+'! \uD83D\uDC4B\n\n'
-    +'Please verify your business *'+biz.biz+'* (ID: *'+biz.bizId+'*) on Navadhar.\n\n'
-    +'\uD83D\uDC49 Verify My Account \u2192 '+verifyUrl+'\n\n'
-    +'\u23F0 This link expires in 24 hours.\n\n'
-    +'\u2014 Navadhar Team, Jodhpur';
-  const waNumber=(biz.whatsapp||biz.phone||'').replace(/\D/g,'');
-  _verifyWaUrl='https://wa.me/'+waNumber+'?text='+encodeURIComponent(waMsg);
-
-  _verifyEmailSubject='Verify My Account \u2014 Navadhar';
-  _verifyEmailBody=
-    'Hello '+name+',\n\n'
-    +'Please verify your Navadhar account for "'+biz.biz+'" (ID: '+biz.bizId+').\n\n'
-    +'Verify My Account \u2192 '+verifyUrl+'\n\n'
-    +'This link expires in 24 hours.\n\n'
-    +'\u2014 Navadhar Team, Jodhpur';
-
-  // Show banner
-  document.getElementById('vb-bizid').textContent=biz.bizId+' — '+biz.biz;
-  document.getElementById('verify-banner').classList.add('show');
 }
 
-function resendViaWA(){
-  if(!_verifyWaUrl)return;
-  window.open(_verifyWaUrl,'_blank');
-  const btn=document.getElementById('vb-wa-btn');
-  btn.textContent='✓ WhatsApp Opened';btn.style.background='#16A34A';btn.style.borderColor='#16A34A';
-}
-function resendViaEmail(){
-  const email=_unverifiedBiz?(_unverifiedBiz.email||''):'';
-  const url='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(_verifyEmailSubject)+'&body='+encodeURIComponent(_verifyEmailBody);
-  window.open(url,'_blank');
-  const btn=document.getElementById('vb-em-btn');
-  btn.textContent='✓ Email Opened';btn.style.background='#1D4ED8';btn.style.borderColor='#1D4ED8';
-}
-function dismissBanner(){
-  document.getElementById('verify-banner').classList.remove('show');
-}
-
-// ─── BOOT ───
 window.addEventListener('load',function(){
   renderStats();
-  renderZones();
-  renderGrid3dDots();
-  checkVerification();
+  renderNav();
 });
 </script>
 </body>
