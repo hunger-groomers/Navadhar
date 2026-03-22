@@ -125,6 +125,21 @@ nav{background:rgba(6,6,15,.88);backdrop-filter:blur(22px);border-bottom:1px sol
 .vtype-label{font-family:var(--fs);font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:.06em}
 .vtype-card.selected .vtype-label{color:var(--or)}
 /* disclaimer */
+
+/* photo upload */
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0}
+.photo-upload{border:2px dashed rgba(255,255,255,.12);border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;background:rgba(255,255,255,.03)}
+.photo-upload:hover{border-color:rgba(255,92,0,.4);background:rgba(255,92,0,.05)}
+.photo-upload.has-photo{border-style:solid;border-color:rgba(22,163,74,.4);background:rgba(22,163,74,.06)}
+.photo-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-upload-icon{font-size:28px;margin-bottom:8px}
+.photo-upload-lbl{font-family:var(--fs);font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:.06em;display:block;margin-bottom:3px}
+.photo-upload-sub{font-size:10px;color:var(--ink3)}
+.photo-preview{width:100%;max-height:90px;object-fit:cover;border-radius:8px;display:none;margin-top:8px}
+.photo-upload.has-photo .photo-upload-icon{display:none}
+.photo-upload.has-photo .photo-preview{display:block}
+.photo-upload.has-photo .photo-upload-lbl{color:#86efac}
+
 .disclaimer{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--ink2);line-height:1.65}
 .disclaimer b{color:var(--ink)}
 .creds-save-btn{width:100%;padding:16px;border-radius:12px;background:var(--or);color:#fff;border:none;font-family:var(--fs);font-weight:800;font-size:14px;cursor:pointer;letter-spacing:.08em;transition:all .2s;box-shadow:0 0 28px var(--or-g),0 4px 18px rgba(0,0,0,.4);position:relative;overflow:hidden}
@@ -327,6 +342,27 @@ nav{background:rgba(6,6,15,.88);backdrop-filter:blur(22px);border-bottom:1px sol
       <div>
         <label class="flbl">Emergency Contact</label>
         <input class="finp" id="c-emergency" type="tel" placeholder="+91 98765 43210" maxlength="15"/>
+      </div>
+      <div class="full">
+        <label class="flbl">Profile Photo <span class="req">*</span></label>
+        <div class="photo-grid">
+          <div class="photo-upload" id="pu-profile" onclick="triggerUpload('c-profile-file')">
+            <input type="file" id="c-profile-file" accept="image/*" onchange="handlePhoto(this,'pu-profile','profile-preview','c-profile-b64')"/>
+            <div class="photo-upload-icon">🤳</div>
+            <span class="photo-upload-lbl">Profile Photo</span>
+            <span class="photo-upload-sub">Clear face photo</span>
+            <img class="photo-preview" id="profile-preview"/>
+          </div>
+          <div class="photo-upload" id="pu-vehicle" onclick="triggerUpload('c-vehicle-file')">
+            <input type="file" id="c-vehicle-file" accept="image/*" onchange="handlePhoto(this,'pu-vehicle','vehicle-preview','c-vehicle-b64')"/>
+            <div class="photo-upload-icon">🚗</div>
+            <span class="photo-upload-lbl">Vehicle Photo</span>
+            <span class="photo-upload-sub">Show number plate clearly</span>
+            <img class="photo-preview" id="vehicle-preview"/>
+          </div>
+        </div>
+        <input type="hidden" id="c-profile-b64"/>
+        <input type="hidden" id="c-vehicle-b64"/>
       </div>
       <div class="full">
         <label class="flbl">Vehicle Type <span class="req">*</span></label>
@@ -609,7 +645,9 @@ function watchCreds(){
   var dl=document.getElementById('c-dl').value.trim();
   var rc=document.getElementById('c-rc').value.trim();
   var aadhaar=document.getElementById('c-aadhaar').value.replace(/\s/g,'');
-  document.getElementById('creds-save-btn').disabled=!(name&&dl&&rc&&aadhaar.length>=12&&vTypeSelected);
+    var profilePhoto=document.getElementById('c-profile-b64').value;
+  var vehiclePhoto=document.getElementById('c-vehicle-b64').value;
+  document.getElementById('creds-save-btn').disabled=!(name&&dl&&rc&&aadhaar.length>=12&&vTypeSelected&&profilePhoto&&vehiclePhoto);
 }
 
 function submitCreds(){
@@ -618,7 +656,9 @@ function submitCreds(){
   var rc=document.getElementById('c-rc').value.trim().toUpperCase();
   var aadhaar=document.getElementById('c-aadhaar').value.replace(/\s/g,'');
   var emergency=document.getElementById('c-emergency').value.trim();
-  if(!name||!dl||!rc||aadhaar.length<12||!vTypeSelected){
+  var profilePhoto=document.getElementById('c-profile-b64').value;
+  var vehiclePhoto=document.getElementById('c-vehicle-b64').value;
+  if(!name||!dl||!rc||aadhaar.length<12||!vTypeSelected||!profilePhoto||!vehiclePhoto){
     showMsg('creds-msg','Please fill in all required fields.','err');return;
   }
   var drivers=loadDrivers();
@@ -627,6 +667,8 @@ function submitCreds(){
     driverId:driverId,name:name,phone:driverPhone,
     licence:dl,rc:rc,aadhaar:aadhaar,vehicleType:vTypeSelected,
     emergency:emergency,
+    profilePhoto:profilePhoto,
+    vehiclePhoto:vehiclePhoto,
     status:'pending_approval',
     zone:null,
     submittedAt:new Date().toISOString(),
@@ -673,6 +715,25 @@ function refreshStatus(){
 // ── APPROVED DASHBOARD ──
 function showApprovedDash(){
   if(!DRIVER)return;
+  // Send WA confirmation if not already sent
+  if(!DRIVER._waSent){
+    var drivers=loadDrivers();
+    var idx=drivers.findIndex(function(d){return d.driverId===DRIVER.driverId;});
+    if(idx>=0){drivers[idx]._waSent=true;saveDrivers(drivers);DRIVER._waSent=true;}
+    var waMsg=
+      'Hello '+DRIVER.name+'! \uD83D\uDE9A\n\n'
+      +'*Your Navadhar driver account has been approved!*\n\n'
+      +'Driver ID: *'+DRIVER.driverId+'*\n'
+      +'Assigned Zone: *'+( DRIVER.zone||'—')+' Zone*\n'
+      +'Vehicle Type: *'+DRIVER.vehicleType+'*\n\n'
+      +'You can now log in and start accepting pickups:\n'
+      +'\uD83D\uDC49 '+window.location.origin+window.location.pathname+'\n\n'
+      +'\u2014 Navadhar Team, Jodhpur';
+    var waNum=(DRIVER.phone||'').replace(/\D/g,'');
+    if(!waNum.startsWith('91'))waNum='91'+waNum;
+    var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(waMsg);
+    window.open(waUrl,'_blank');
+  }
   setNavDriver(DRIVER);
   var zone=DRIVER.zone||'North';
   var z=ZM[zone]||ZM['North'];
@@ -793,6 +854,29 @@ function renderDriverMap(zone){
     bounds.push([p.lat,p.lng]);
   });
   if(bounds.length>1)DMAP.fitBounds(bounds,{padding:[24,24]});
+}
+
+
+// ── PHOTO UPLOAD ──
+function triggerUpload(id){
+  // click handled by the input's own click via label trick — no-op needed
+}
+function handlePhoto(input, wrapId, previewId, b64Id){
+  var file = input.files[0];
+  if(!file) return;
+  // Max 2MB check
+  if(file.size > 2*1024*1024){
+    alert('Photo must be under 2MB. Please choose a smaller file.');
+    input.value='';return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    document.getElementById(previewId).src = e.target.result;
+    document.getElementById(b64Id).value = e.target.result;
+    document.getElementById(wrapId).classList.add('has-photo');
+    watchCreds();
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── HELPERS ──
