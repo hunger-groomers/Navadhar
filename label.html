@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Shipment Label — Navadhar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070e;--bg2:#0c0c18;--bg3:#10101e;
+  --ink:#f0f0ff;--ink2:#8080a0;--ink3:#303048;
+  --or:#FF5C00;--or2:#ff7a2a;--or3:#cc4900;--or-g:rgba(255,92,0,.35);
+  --gr:#16A34A;--re:#DC2626;
+  --f:'League Spartan',sans-serif;--fm:'DM Mono',monospace;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--f);padding:0;overflow-x:hidden}
+
+/* grain */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.022;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* NAV */
+nav{background:rgba(7,7,14,.92);backdrop-filter:blur(22px);border-bottom:1px solid rgba(255,255,255,.07);padding:0 28px;height:58px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.lsq{width:30px;height:30px;background:var(--or);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;box-shadow:0 0 14px var(--or-g)}
+.lname{font-weight:900;font-size:14px;color:var(--ink);letter-spacing:.08em}
+.nav-r{margin-left:auto;display:flex;gap:7px}
+.nbtn{font-size:11px;padding:6px 13px;border-radius:7px;border:1px solid rgba(255,255,255,.1);color:var(--ink2);text-decoration:none;font-weight:700;background:rgba(255,255,255,.04);transition:all .2s;letter-spacing:.04em;cursor:pointer}
+.nbtn:hover{color:var(--ink);border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.08)}
+.nbtn.print-btn{background:var(--or);color:#fff;border-color:var(--or);box-shadow:0 0 12px var(--or-g)}
+.nbtn.print-btn:hover{background:var(--or2)}
+
+/* PAGE */
+.page{max-width:520px;margin:0 auto;padding:28px 20px;position:relative;z-index:1}
+
+/* ERROR STATE */
+.error-card{background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:48px 32px;text-align:center;margin-top:20px}
+.error-icon{font-size:40px;margin-bottom:16px;opacity:.5}
+.error-title{font-weight:900;font-size:22px;color:var(--re);margin-bottom:8px}
+.error-sub{font-size:13px;color:var(--ink2);line-height:1.65;font-weight:400}
+
+/* LABEL CARD (screen view - dark themed) */
+.label-screen{background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 16px 60px rgba(0,0,0,.6);margin-bottom:20px;position:relative}
+.label-screen::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
+.zone-stripe{height:7px;width:100%}
+
+.ls-inner{padding:22px}
+
+/* header */
+.ls-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.ls-logo-sq{width:40px;height:40px;border-radius:10px;background:var(--or);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#fff;flex-shrink:0;box-shadow:0 0 14px var(--or-g)}
+.ls-logo-txt{flex:1}
+.ls-logo-name{font-weight:900;font-size:14px;letter-spacing:.06em;color:var(--ink)}
+.ls-logo-sub{font-size:9px;font-weight:700;color:var(--ink2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.ls-id-wrap{text-align:right}
+.ls-id-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--ink2)}
+.ls-id-val{font-family:var(--fm);font-size:18px;font-weight:500;color:var(--or);letter-spacing:.04em}
+
+/* business name */
+.ls-biz{font-weight:900;font-size:26px;color:var(--ink);letter-spacing:-.01em;margin-bottom:4px;line-height:1}
+.ls-owner{font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:18px}
+
+/* badges */
+.badges-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.badge{border-radius:12px;padding:12px 10px;text-align:center;border:1px solid}
+.badge-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;opacity:.75}
+.badge-val{font-weight:900;font-size:26px;line-height:1;letter-spacing:-.01em}
+.badge-sub{font-size:9px;font-weight:700;opacity:.65;margin-top:3px;letter-spacing:.04em}
+
+/* info tiles */
+.info-tiles{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tile{flex:1;min-width:80px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px}
+.tile-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--ink2);margin-bottom:4px}
+.tile-val{font-size:13px;font-weight:700;color:var(--ink);letter-spacing:.02em}
+.tile-val.mono{font-family:var(--fm);font-size:12px}
+
+/* GPS */
+.gps-row{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:11px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.gps-icon{font-size:18px;flex-shrink:0}
+.gps-coords{font-family:var(--fm);font-size:12px;color:var(--ink);letter-spacing:.03em;flex:1}
+.gps-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)}
+.gps-open{font-size:10px;font-weight:800;color:var(--or);text-decoration:none;letter-spacing:.04em;flex-shrink:0;transition:opacity .2s}
+.gps-open:hover{opacity:.7}
+
+/* QR row */
+.qr-row{display:flex;align-items:center;gap:16px;padding:16px 0 0;border-top:1px solid rgba(255,255,255,.06)}
+.qr-box{width:110px;height:110px;flex-shrink:0;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:5px}
+.qr-info-title{font-weight:900;font-size:12px;color:var(--ink);margin-bottom:6px;letter-spacing:.02em}
+.qr-info-sub{font-size:11px;color:var(--ink2);line-height:1.6;font-weight:400}
+.qr-info-id{font-family:var(--fm);font-size:11px;color:var(--or);font-weight:500;margin-top:6px;letter-spacing:.04em}
+
+/* footer */
+.ls-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.05)}
+.ls-footer-date{font-size:9px;font-weight:700;color:var(--ink3);letter-spacing:.06em}
+.ls-footer-brand{font-size:10px;font-weight:900;color:var(--or);letter-spacing:.1em}
+
+/* action buttons */
+.actions{display:flex;gap:10px;margin-bottom:16px}
+.action-btn{flex:1;padding:13px;border-radius:11px;font-family:var(--f);font-weight:800;font-size:12px;cursor:pointer;border:1px solid;transition:all .2s;text-align:center;letter-spacing:.04em;text-decoration:none;display:block}
+.action-btn.primary{background:var(--or);color:#fff;border-color:var(--or);box-shadow:0 0 16px var(--or-g)}
+.action-btn.primary:hover{background:var(--or2)}
+.action-btn.ghost{background:rgba(255,255,255,.05);color:var(--ink2);border-color:rgba(255,255,255,.1)}
+.action-btn.ghost:hover{background:rgba(255,255,255,.1);color:var(--ink)}
+
+/* scan context note */
+.scan-note{background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:12px;padding:13px 16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px}
+.scan-note-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.scan-note-txt{font-size:12px;color:var(--ink2);line-height:1.65;font-weight:400}
+.scan-note-txt strong{color:var(--ink);font-weight:700}
+
+/* PRINT STYLES */
+@media print{
+  body{background:#fff!important;color:#0A0A14!important}
+  body::before{display:none}
+  nav,.actions,.scan-note,.no-print{display:none!important}
+  .label-screen{background:#fff!important;border:2px solid #0A0A14!important;border-radius:12px!important;box-shadow:none!important}
+  .label-screen::before{display:none}
+  .ls-logo-name,.ls-biz,.ls-id-val{color:#0A0A14!important}
+  .ls-logo-sub,.ls-id-lbl,.badge-lbl,.tile-lbl,.gps-label,.qr-info-sub,.ls-footer-date{color:#8888A0!important}
+  .ls-owner,.tile-val,.gps-coords{color:#3D3D55!important}
+  .ls-logo-sq,.ls-footer-brand,.ls-id-val{color:#FF5C00!important}
+  .tile,.gps-row,.qr-row{border-color:#E2E4E9!important;background:#F8F9FC!important}
+  .qr-box{border-color:#E2E4E9!important;background:#fff!important}
+  .ls-hdr,.ls-footer{border-color:#E2E4E9!important}
+  .ls-inner,.page{padding:16px!important}
+  .zone-stripe{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="./index.html">
+    <div class="lsq">N</div>
+    <span class="lname">NAVADHAR</span>
+  </a>
+  <div class="nav-r">
+    <button class="nbtn print-btn" onclick="window.print()">🖨 Print Label</button>
+    <a class="nbtn" href="./index.html">← Home</a>
+  </div>
+</nav>
+
+<div class="page" id="page">
+  <!-- populated by JS -->
+</div>
+
+<script>
+var ZM = {
+  North:{solid:'#6C2BD9',light:'rgba(108,43,217,.15)',text:'#6C2BD9',labelColor:'#6C2BD9',label:'N',name:'North'},
+  East: {solid:'#0284C7',light:'rgba(2,132,199,.15)',  text:'#0284C7',labelColor:'#0284C7',label:'E',name:'East'},
+  South:{solid:'#DC2626',light:'rgba(220,38,38,.15)',  text:'#DC2626',labelColor:'#DC2626',label:'S',name:'South'},
+  West: {solid:'#D97706',light:'rgba(217,119,6,.15)',  text:'#D97706',labelColor:'#D97706',label:'W',name:'West'}
+};
+
+function escH(s){ if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function render(){
+  var p   = new URLSearchParams(window.location.search);
+  var id  = p.get('id');
+  var biz = p.get('biz');
+
+  // Must have at minimum an id or biz
+  if(!id && !biz){
+    showError('No shipment data found.','This QR code doesn\'t contain valid Navadhar shipment data. Please scan a valid Navadhar label.');
+    return;
+  }
+
+  var zone   = p.get('zone')  || '—';
+  var owner  = p.get('owner') || '';
+  var phone  = p.get('phone') || '';
+  var cat    = p.get('cat')   || '';
+  var dist   = p.get('dist')  || '';
+  var pick   = p.get('pick')  || '—';
+  var del    = p.get('del')   || '—';
+  var lat    = p.get('lat')   || '';
+  var lng    = p.get('lng')   || '';
+  var reg    = p.get('reg')   || '';
+
+  var z = ZM[zone] || {solid:'#888',light:'rgba(128,128,128,.12)',text:'#888',label:zone.charAt(0),name:zone};
+
+  // Full QR URL = current page URL (for re-printing)
+  var qrUrl = window.location.href;
+
+  var mapsUrl = (lat && lng) ? 'https://maps.google.com/?q='+lat+','+lng : '';
+
+  var page = document.getElementById('page');
+
+  // ── SCAN NOTE ──
+  page.innerHTML =
+    '<div class="scan-note">'
+    + '<div class="scan-note-icon">📦</div>'
+    + '<div class="scan-note-txt">This is a <strong>Navadhar shipment label</strong> for <strong>'+escH(biz||id)+'</strong>. Scan by a Navadhar driver to confirm pickup. Print and paste on every package you send.</div>'
+    + '</div>'
+
+    // ── ACTIONS ──
+    + '<div class="actions no-print">'
+    + '<button class="action-btn primary" onclick="window.print()">🖨 Print Label</button>'
+    + '<button class="action-btn ghost" onclick="shareLabel()">⬆ Share</button>'
+    + '</div>'
+
+    // ── LABEL CARD ──
+    + '<div class="label-screen">'
+    + '<div class="zone-stripe" style="background:'+z.solid+'"></div>'
+    + '<div class="ls-inner">'
+
+    // header
+    + '<div class="ls-hdr">'
+    +   '<div class="ls-logo-sq">N</div>'
+    +   '<div class="ls-logo-txt"><div class="ls-logo-name">NAVADHAR</div><div class="ls-logo-sub">Jodhpur B2B Delivery Network</div></div>'
+    +   '<div class="ls-id-wrap"><div class="ls-id-lbl">Shipment ID</div><div class="ls-id-val">'+escH(id||'—')+'</div></div>'
+    + '</div>'
+
+    // business name
+    + '<div class="ls-biz">'+escH(biz||'—')+'</div>'
+    + '<div class="ls-owner">'+escH(owner)+'</div>'
+
+    // badges
+    + '<div class="badges-row">'
+    +   '<div class="badge" style="background:'+z.light+';border-color:'+z.solid+'">'
+    +     '<div class="badge-lbl" style="color:'+z.text+'">Zone</div>'
+    +     '<div class="badge-val" style="color:'+z.solid+'">'+z.label+'</div>'
+    +     '<div class="badge-sub" style="color:'+z.text+'">'+z.name+'</div>'
+    +   '</div>'
+    +   '<div class="badge" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)">'
+    +     '<div class="badge-lbl" style="color:var(--ink2)">Pickup #</div>'
+    +     '<div class="badge-val" style="color:var(--ink)">'+escH(pick)+'</div>'
+    +     '<div class="badge-sub" style="color:var(--ink2)">Order</div>'
+    +   '</div>'
+    +   '<div class="badge" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)">'
+    +     '<div class="badge-lbl" style="color:var(--ink2)">Delivery</div>'
+    +     '<div class="badge-val" style="color:var(--ink)">'+escH(del)+'</div>'
+    +     '<div class="badge-sub" style="color:var(--ink2)">Drop order</div>'
+    +   '</div>'
+    + '</div>'
+
+    // info tiles
+    + '<div class="info-tiles">'
+    + (phone ? '<div class="tile"><div class="tile-lbl">Phone</div><div class="tile-val mono">'+escH(phone)+'</div></div>' : '')
+    + (cat   ? '<div class="tile"><div class="tile-lbl">Category</div><div class="tile-val">'+escH(cat)+'</div></div>' : '')
+    + (dist  ? '<div class="tile"><div class="tile-lbl">Distance</div><div class="tile-val mono">'+escH(dist)+'m from centre</div></div>' : '')
+    + '</div>'
+
+    // GPS row
+    + (lat && lng ?
+      '<div class="gps-row">'
+      + '<div class="gps-icon">📍</div>'
+      + '<div><div class="gps-label">GPS Location</div><div class="gps-coords">'+lat+', '+lng+'</div></div>'
+      + '<a class="gps-open" href="'+mapsUrl+'" target="_blank">Open in Maps →</a>'
+      + '</div>'
+      : '')
+
+    // QR row
+    + '<div class="qr-row">'
+    +   '<div class="qr-box" id="qr-el"></div>'
+    +   '<div style="flex:1">'
+    +     '<div class="qr-info-title">Scan to verify shipment</div>'
+    +     '<div class="qr-info-sub">Driver scans this QR to confirm pickup &amp; view GPS location. Paste this label on every package.<br><br>Contains all business details.</div>'
+    +     '<div class="qr-info-id">'+escH(id||'')+(zone ? ' · '+zone+' Zone' : '')+'</div>'
+    +   '</div>'
+    + '</div>'
+
+    // footer
+    + '<div class="ls-footer">'
+    +   '<div class="ls-footer-date">'+(reg ? 'Registered: '+reg : '')+'</div>'
+    +   '<div class="ls-footer-brand">NAVADHAR · JODHPUR</div>'
+    + '</div>'
+
+    + '</div>'// ls-inner
+    + '</div>';// label-screen
+
+  // Render QR
+  try {
+    new QRCode(document.getElementById('qr-el'), {
+      text: qrUrl,
+      width: 100, height: 100,
+      colorDark: '#0A0A14',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {}
+
+  // Update page title
+  document.title = (biz||id) + ' — Navadhar Label';
+}
+
+function showError(title, sub){
+  document.getElementById('page').innerHTML =
+    '<div class="error-card">'
+    + '<div class="error-icon">⚠️</div>'
+    + '<div class="error-title">'+escH(title)+'</div>'
+    + '<div class="error-sub" style="margin-top:8px">'+escH(sub)+'</div>'
+    + '<a href="./index.html" style="display:inline-block;margin-top:20px;padding:11px 22px;background:var(--or);color:#fff;border-radius:9px;font-weight:800;text-decoration:none;font-size:12px;letter-spacing:.05em">← Back to Home</a>'
+    + '</div>';
+}
+
+function shareLabel(){
+  if(navigator.share){
+    navigator.share({
+      title: 'Navadhar Shipment Label',
+      text: 'Navadhar pickup label — scan to verify shipment',
+      url: window.location.href
+    });
+  } else {
+    navigator.clipboard.writeText(window.location.href)
+      .then(function(){ alert('Label link copied to clipboard!'); })
+      .catch(function(){ prompt('Copy this label link:', window.location.href); });
+  }
+}
+
+render();
+</script>
+</body>
+</html>
