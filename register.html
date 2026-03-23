@@ -460,7 +460,14 @@ nav{background:rgba(7,7,14,.92);backdrop-filter:blur(22px);border-bottom:1px sol
     </div>
 
     <div id="qr-container"></div>
-    <p class="qr-hint">📲 Driver scans this QR to see your exact pickup location.<br>Screenshot or download it now.</p>
+
+    <!-- SHIPMENT LABEL PREVIEW -->
+    <div id="label-preview" style="display:none;margin-bottom:18px"></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:18px">
+      <button class="sbtn outline" style="flex:1" onclick="downloadQR()">⬇ Download QR</button>
+      <button class="sbtn outline" style="flex:1" onclick="printLabel()">🖨 Print Label</button>
+    </div>
 
     <!-- SEND VERIFY -->
     <div class="svb">
@@ -761,22 +768,230 @@ function sendViaEmail(){
   showToast('Email app opened!','ok');
 }
 
-// ── QR ──
+// ── QR + LABEL ──
+var ZM_COLORS = {
+  North:{solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9',label:'N'},
+  East: {solid:'#0284C7',light:'#E0F2FE',text:'#0284C7',label:'E'},
+  South:{solid:'#DC2626',light:'#FEE2E2',text:'#DC2626',label:'S'},
+  West: {solid:'#D97706',light:'#FEF3C7',text:'#D97706',label:'W'}
+};
+
 function generateQR(entry){
-  var el=document.getElementById('qr-container');el.innerHTML='';
-  var qrData=window.location.origin+window.location.pathname.replace('register.html','')+'scan.html?id='+entry.bizId;
-  try{new QRCode(el,{text:qrData,width:180,height:180,colorDark:'#0A0A14',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
-  catch(err){el.innerHTML='<div style="font-size:11px;color:var(--ink2);word-break:break-all;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--bdr)">QR URL:<br><b style="color:var(--ink)">'+qrData+'</b></div>';}
+  // ── Build a rich scan URL that encodes all business details ──
+  var base = window.location.origin + window.location.pathname.replace('register.html','');
+
+  // Calculate pickup order within zone
+  var allPickups = db().filter(function(p){ return p.zone === entry.zone; }).sort(function(a,b){ return a.dist - b.dist; });
+  var pickupOrder = allPickups.findIndex(function(p){ return p.bizId === entry.bizId; }) + 1;
+  var totalInZone = allPickups.length;
+  // Delivery is reverse of pickup
+  var deliveryLetter = String.fromCharCode(65 + totalInZone - pickupOrder);
+
+  var params = new URLSearchParams({
+    id:       entry.bizId,
+    biz:      entry.biz,
+    owner:    entry.owner || '',
+    phone:    entry.phone || '',
+    zone:     entry.zone,
+    cat:      entry.category || '',
+    dist:     entry.dist,
+    pick:     pickupOrder,
+    del:      deliveryLetter,
+    lat:      (entry.lat||'').toString().slice(0,9),
+    lng:      (entry.lng||'').toString().slice(0,9),
+    reg:      (entry.registeredAt||'').slice(0,10)
+  });
+  var qrUrl = base + 'label.html?' + params.toString();
+
+  // ── Render QR ──
+  var el = document.getElementById('qr-container');
+  el.innerHTML = '';
+  try {
+    new QRCode(el, {text:qrUrl, width:200, height:200, colorDark:'#0A0A14', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M});
+  } catch(err) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--ink2);word-break:break-all;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--bdr)">' + qrUrl + '</div>';
+  }
+
+  // ── Render shipment label preview ──
+  var z = ZM_COLORS[entry.zone] || {solid:'#888',light:'#222',text:'#888',label:'?'};
+  var prev = document.getElementById('label-preview');
+  prev.style.display = 'block';
+  prev.innerHTML =
+    '<div style="background:#fff;border-radius:14px;padding:18px;font-family:League Spartan,sans-serif;color:#0A0A14;position:relative;overflow:hidden;border:2px solid #0A0A14">'
+    // top stripe
+    + '<div style="position:absolute;top:0;left:0;right:0;height:6px;background:'+z.solid+'"></div>'
+    // header row
+    + '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1.5px solid #E2E4E9">'
+    +   '<div style="width:36px;height:36px;border-radius:8px;background:#FF5C00;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#fff;flex-shrink:0">N</div>'
+    +   '<div style="flex:1">'
+    +     '<div style="font-weight:900;font-size:13px;letter-spacing:.06em">NAVADHAR</div>'
+    +     '<div style="font-size:9px;font-weight:700;color:#8888A0;letter-spacing:.1em;text-transform:uppercase">Jodhpur B2B Delivery Network</div>'
+    +   '</div>'
+    +   '<div style="text-align:right">'
+    +     '<div style="font-size:9px;font-weight:700;color:#8888A0;letter-spacing:.08em;text-transform:uppercase">Shipment ID</div>'
+    +     '<div style="font-family:DM Mono,monospace;font-size:15px;font-weight:700;color:#FF5C00;letter-spacing:.04em">'+entry.bizId+'</div>'
+    +   '</div>'
+    + '</div>'
+    // biz name
+    + '<div style="font-weight:900;font-size:18px;color:#0A0A14;margin-bottom:3px;letter-spacing:-.01em">'+escH(entry.biz)+'</div>'
+    + (entry.owner ? '<div style="font-size:11px;font-weight:600;color:#3D3D55;margin-bottom:10px">'+escH(entry.owner)+'</div>' : '<div style="margin-bottom:10px"></div>')
+    // info row
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">'
+    +   '<div style="background:'+z.light+';border:1px solid '+z.solid+';border-radius:8px;padding:8px;text-align:center">'
+    +     '<div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:'+z.text+';margin-bottom:2px">Zone</div>'
+    +     '<div style="font-weight:900;font-size:16px;color:'+z.solid+'">'+z.label+'</div>'
+    +     '<div style="font-size:8px;font-weight:700;color:'+z.text+'">'+entry.zone+'</div>'
+    +   '</div>'
+    +   '<div style="background:#F8F9FC;border:1px solid #E2E4E9;border-radius:8px;padding:8px;text-align:center">'
+    +     '<div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#8888A0;margin-bottom:2px">Pickup #</div>'
+    +     '<div style="font-weight:900;font-size:16px;color:#0A0A14">'+pickupOrder+'</div>'
+    +     '<div style="font-size:8px;font-weight:700;color:#8888A0">of '+totalInZone+'</div>'
+    +   '</div>'
+    +   '<div style="background:#F8F9FC;border:1px solid #E2E4E9;border-radius:8px;padding:8px;text-align:center">'
+    +     '<div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#8888A0;margin-bottom:2px">Delivery</div>'
+    +     '<div style="font-weight:900;font-size:16px;color:#0A0A14">'+deliveryLetter+'</div>'
+    +     '<div style="font-size:8px;font-weight:700;color:#8888A0">Drop order</div>'
+    +   '</div>'
+    + '</div>'
+    // contact + category
+    + '<div style="display:flex;gap:8px;margin-bottom:14px">'
+    +   (entry.phone ? '<div style="flex:1;background:#F8F9FC;border:1px solid #E2E4E9;border-radius:8px;padding:8px 10px"><div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#8888A0;margin-bottom:2px">Phone</div><div style="font-size:11px;font-weight:700;font-family:DM Mono,monospace">'+escH(entry.phone)+'</div></div>' : '')
+    +   (entry.category ? '<div style="flex:1;background:#F8F9FC;border:1px solid #E2E4E9;border-radius:8px;padding:8px 10px"><div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#8888A0;margin-bottom:2px">Category</div><div style="font-size:11px;font-weight:700">'+escH(entry.category)+'</div></div>' : '')
+    +   '<div style="background:#F8F9FC;border:1px solid #E2E4E9;border-radius:8px;padding:8px 10px"><div style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#8888A0;margin-bottom:2px">Distance</div><div style="font-size:11px;font-weight:700;font-family:DM Mono,monospace">'+entry.dist+'m</div></div>'
+    + '</div>'
+    // footer
+    + '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1.5px solid #E2E4E9">'
+    +   '<div style="font-size:9px;font-weight:700;color:#8888A0;letter-spacing:.06em">Registered: '+(entry.registeredAt||'').slice(0,10)+'</div>'
+    +   '<div style="font-size:9px;font-weight:900;color:#FF5C00;letter-spacing:.08em">NAVADHAR · JODHPUR</div>'
+    + '</div>'
+    + '</div>';
+
+  // store for print
+  window._lastQrUrl  = qrUrl;
+  window._lastEntry  = entry;
+  window._lastPickup = pickupOrder;
+  window._lastDel    = deliveryLetter;
+  window._lastTotal  = totalInZone;
+}
+
+function printLabel(){
+  if(!window._lastEntry) return;
+  var e = window._lastEntry;
+  var z = ZM_COLORS[e.zone] || {solid:'#888',light:'#eee',text:'#888',label:'?'};
+  var po = window._lastPickup, dl = window._lastDel, tot = window._lastTotal;
+
+  var w = window.open('','_blank','width=600,height=500');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"/>'
+    + '<title>Navadhar Label — '+e.bizId+'</title>'
+    + '<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>'
+    + '<style>'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{background:#fff;font-family:League Spartan,sans-serif;padding:20px;display:flex;flex-direction:column;align-items:center;min-height:100vh}'
+    + '.label{width:100%;max-width:400px;border:2.5px solid #0A0A14;border-radius:16px;overflow:hidden;background:#fff}'
+    + '.stripe{height:8px;background:'+z.solid+'}'
+    + '.inner{padding:20px}'
+    + '.hdr{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1.5px solid #E2E4E9}'
+    + '.logo-sq{width:42px;height:42px;background:#FF5C00;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;color:#fff}'
+    + '.logo-txt{flex:1}'
+    + '.logo-name{font-weight:900;font-size:15px;letter-spacing:.06em}'
+    + '.logo-sub{font-size:9px;font-weight:700;color:#8888A0;letter-spacing:.1em;text-transform:uppercase}'
+    + '.biz-id{text-align:right}'
+    + '.biz-id-lbl{font-size:9px;font-weight:700;color:#8888A0;text-transform:uppercase;letter-spacing:.08em}'
+    + '.biz-id-val{font-family:DM Mono,monospace;font-size:17px;font-weight:700;color:#FF5C00;letter-spacing:.04em}'
+    + '.biz-name{font-weight:900;font-size:22px;margin-bottom:3px;letter-spacing:-.01em}'
+    + '.biz-owner{font-size:12px;font-weight:600;color:#3D3D55;margin-bottom:14px}'
+    + '.badges{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}'
+    + '.badge{border-radius:10px;padding:10px 8px;text-align:center;border:1.5px solid}'
+    + '.badge-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}'
+    + '.badge-val{font-weight:900;font-size:20px;line-height:1}'
+    + '.badge-sub{font-size:8px;font-weight:700;margin-top:2px}'
+    + '.infos{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}'
+    + '.info-box{flex:1;min-width:80px;background:#F8F9FC;border:1.5px solid #E2E4E9;border-radius:8px;padding:9px 10px}'
+    + '.info-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#8888A0;margin-bottom:3px}'
+    + '.info-val{font-size:12px;font-weight:700}'
+    + '.info-val.mono{font-family:DM Mono,monospace}'
+    + '.qr-row{display:flex;align-items:center;gap:16px;padding-top:14px;border-top:1.5px solid #E2E4E9}'
+    + '.qr-box{width:110px;height:110px;flex-shrink:0;border:1.5px solid #E2E4E9;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}'
+    + '.qr-info{flex:1}'
+    + '.qr-info-title{font-size:11px;font-weight:800;margin-bottom:4px}'
+    + '.qr-info-sub{font-size:10px;font-weight:600;color:#8888A0;line-height:1.55}'
+    + '.footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1.5px solid #E2E4E9}'
+    + '.footer-date{font-size:9px;font-weight:700;color:#8888A0}'
+    + '.footer-brand{font-size:10px;font-weight:900;color:#FF5C00;letter-spacing:.08em}'
+    + '.cut-line{border-top:2px dashed #E2E4E9;margin:24px 0;width:100%;max-width:400px;text-align:center;position:relative}'
+    + '.cut-line span{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:#fff;padding:0 8px;font-size:10px;color:#C0C4CC;font-weight:700}'
+    + '.hint{font-size:10px;color:#8888A0;text-align:center;margin-bottom:16px;font-weight:600}'
+    + '@media print{body{padding:0}.no-print{display:none}}'
+    + '</style>'
+    + '</head><body>'
+    + '<div style="width:100%;max-width:400px;margin-bottom:16px">'
+    +   '<button class="no-print" onclick="window.print()" style="width:100%;padding:13px;background:#FF5C00;color:#fff;border:none;border-radius:10px;font-family:League Spartan,sans-serif;font-weight:900;font-size:14px;cursor:pointer;letter-spacing:.05em;margin-bottom:10px">🖨 Print This Label</button>'
+    +   '<p class="hint">Paste or tape this label on every shipment you send with Navadhar</p>'
+    + '</div>'
+    + '<div class="label">'
+    +   '<div class="stripe"></div>'
+    +   '<div class="inner">'
+    +     '<div class="hdr">'
+    +       '<div class="logo-sq">N</div>'
+    +       '<div class="logo-txt"><div class="logo-name">NAVADHAR</div><div class="logo-sub">Jodhpur B2B Delivery</div></div>'
+    +       '<div class="biz-id"><div class="biz-id-lbl">Shipment ID</div><div class="biz-id-val">'+e.bizId+'</div></div>'
+    +     '</div>'
+    +     '<div class="biz-name">'+(e.biz||'—')+'</div>'
+    +     (e.owner ? '<div class="biz-owner">'+e.owner+'</div>' : '<div class="biz-owner" style="height:20px"></div>')
+    +     '<div class="badges">'
+    +       '<div class="badge" style="background:'+z.light+';border-color:'+z.solid+';color:'+z.text+'">'
+    +         '<div class="badge-lbl" style="color:'+z.text+'">Zone</div>'
+    +         '<div class="badge-val" style="color:'+z.solid+'">'+z.label+'</div>'
+    +         '<div class="badge-sub" style="color:'+z.text+'">'+e.zone+'</div>'
+    +       '</div>'
+    +       '<div class="badge" style="background:#F8F9FC;border-color:#E2E4E9;color:#0A0A14">'
+    +         '<div class="badge-lbl" style="color:#8888A0">Pickup #</div>'
+    +         '<div class="badge-val">'+po+'</div>'
+    +         '<div class="badge-sub" style="color:#8888A0">of '+tot+'</div>'
+    +       '</div>'
+    +       '<div class="badge" style="background:#F8F9FC;border-color:#E2E4E9;color:#0A0A14">'
+    +         '<div class="badge-lbl" style="color:#8888A0">Delivery</div>'
+    +         '<div class="badge-val">'+dl+'</div>'
+    +         '<div class="badge-sub" style="color:#8888A0">Drop order</div>'
+    +       '</div>'
+    +     '</div>'
+    +     '<div class="infos">'
+    +       (e.phone ? '<div class="info-box"><div class="info-lbl">Phone</div><div class="info-val mono">'+e.phone+'</div></div>' : '')
+    +       (e.category ? '<div class="info-box"><div class="info-lbl">Category</div><div class="info-val">'+e.category+'</div></div>' : '')
+    +       '<div class="info-box"><div class="info-lbl">Distance</div><div class="info-val mono">'+e.dist+'m</div></div>'
+    +     '</div>'
+    +     '<div class="qr-row">'
+    +       '<div class="qr-box" id="print-qr"></div>'
+    +       '<div class="qr-info">'
+    +         '<div class="qr-info-title">Scan to verify shipment</div>'
+    +         '<div class="qr-info-sub">Driver scans this to confirm pickup.<br>Contains full business details &amp; GPS location.<br><br><strong>'+e.bizId+' · '+e.zone+' Zone</strong></div>'
+    +       '</div>'
+    +     '</div>'
+    +     '<div class="footer">'
+    +       '<div class="footer-date">Registered: '+(e.registeredAt||'').slice(0,10)+'</div>'
+    +       '<div class="footer-brand">NAVADHAR · JODHPUR</div>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="cut-line no-print"><span>✂ cut here</span></div>'
+    + '<script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"><\/script>'
+    + '<script>'
+    + 'new QRCode(document.getElementById("print-qr"),{text:'+JSON.stringify(window._lastQrUrl)+',width:106,height:106,colorDark:"#0A0A14",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});'
+    + '<\/script>'
+    + '</body></html>');
+  w.document.close();
 }
 function downloadQR(){
   var canvas=document.querySelector('#qr-container canvas');
   if(!canvas){showToast('QR not ready yet','err');return;}
   var a=document.createElement('a');
-  a.download='navadhar-qr-'+(lastBiz?lastBiz.bizId:'biz')+'.png';
+  a.download='navadhar-label-'+(window._lastEntry?window._lastEntry.bizId:'biz')+'.png';
   a.href=canvas.toDataURL('image/png');
   a.click();
   showToast('QR downloaded!','ok');
 }
+
+function escH(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // ── CONFETTI ──
 function burstConfetti(){
