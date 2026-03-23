@@ -111,6 +111,26 @@ nav{background:rgba(7,7,14,.92);backdrop-filter:blur(22px);border-bottom:1px sol
 .scan-note-txt{font-size:12px;color:var(--ink2);line-height:1.65;font-weight:400}
 .scan-note-txt strong{color:var(--ink);font-weight:700}
 
+/* DASHBOARD ENTRY — hero tap target when scanned from wall */
+.dash-entry{
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(135deg,rgba(255,92,0,.14) 0%,rgba(255,92,0,.06) 100%);
+  border:1px solid rgba(255,92,0,.35);border-radius:16px;
+  padding:16px 18px;margin-bottom:14px;text-decoration:none;
+  position:relative;overflow:hidden;transition:all .2s;
+  box-shadow:0 4px 0 rgba(255,92,0,.15),0 8px 24px rgba(0,0,0,.4);
+}
+.dash-entry::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,92,0,.5),transparent)}
+.dash-entry::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.06) 0%,transparent 55%)}
+.dash-entry:hover{transform:translateY(-2px);box-shadow:0 7px 0 rgba(255,92,0,.15),0 14px 32px rgba(0,0,0,.5);border-color:rgba(255,92,0,.55)}
+.dash-entry:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(255,92,0,.15)}
+.dash-entry-left{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.dash-entry-icon{width:42px;height:42px;border-radius:11px;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 3px 0 var(--or3),0 4px 12px rgba(255,92,0,.3)}
+.dash-entry-name{font-weight:900;font-size:15px;color:var(--ink);letter-spacing:-.01em;line-height:1;margin-bottom:3px}
+.dash-entry-sub{font-size:11px;color:var(--or);font-weight:700;letter-spacing:.04em}
+.dash-entry-arrow{font-size:22px;color:var(--or);font-weight:900;position:relative;z-index:1;transition:transform .2s}
+.dash-entry:hover .dash-entry-arrow{transform:translateX(4px)}
+
 /* PRINT STYLES */
 @media print{
   body{background:#fff!important;color:#0A0A14!important}
@@ -188,9 +208,27 @@ function render(){
 
   var page = document.getElementById('page');
 
+  // ── Set active biz from QR scan (no login needed) ──
+  if(id) localStorage.setItem('nvd_active_biz', id);
+
+  var dashUrl = window.location.href.replace(/label\.html.*/, 'dashboard.html') + (id ? '?id='+id : '');
+
   // ── SCAN NOTE ──
   page.innerHTML =
-    '<div class="scan-note">'
+
+    // ── DASHBOARD ENTRY (hero button — shown when scanned from wall QR) ──
+    '<a href="'+dashUrl+'" class="dash-entry no-print">'
+    + '<div class="dash-entry-left">'
+    +   '<div class="dash-entry-icon">🏪</div>'
+    +   '<div>'
+    +     '<div class="dash-entry-name">'+escH(biz||id)+'</div>'
+    +     '<div class="dash-entry-sub">Tap to open your business dashboard</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="dash-entry-arrow">→</div>'
+    + '</a>'
+
+    + '<div class="scan-note">'
     + '<div class="scan-note-icon">📦</div>'
     + '<div class="scan-note-txt">This is a <strong>Navadhar shipment label</strong> for <strong>'+escH(biz||id)+'</strong>. Scan by a Navadhar driver to confirm pickup. Print and paste on every package you send.</div>'
     + '</div>'
