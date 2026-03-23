@@ -3,209 +3,681 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Verify My Account — Navadhar</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<title>Verify Account — Navadhar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#0A0A14;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
-.bg1{position:fixed;top:-80px;right:-80px;width:400px;height:400px;border-radius:50%;background:rgba(255,92,0,0.07);pointer-events:none}
-.bg2{position:fixed;bottom:-100px;left:-60px;width:360px;height:360px;border-radius:50%;background:rgba(22,163,74,0.06);pointer-events:none}
+:root{
+  --bg:#07070e;--bg2:#0c0c18;--bg3:#10101e;
+  --ink:#f0f0ff;--ink2:#8080a0;--ink3:#303048;
+  --or:#FF5C00;--or2:#ff7a2a;--or3:#cc4900;--or-g:rgba(255,92,0,.35);
+  --gr:#16A34A;--re:#DC2626;--am:#D97706;--vi:#6C2BD9;--sk:#0284C7;
+  --f:'League Spartan',sans-serif;--fm:'DM Mono',monospace;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--f);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow-x:hidden}
 
-.card{background:#fff;border:3px solid #0A0A14;border-radius:22px;padding:44px 40px;width:100%;max-width:440px;position:relative;z-index:1;text-align:center}
+/* grain */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.022;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-.logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
-.lsq{width:40px;height:40px;background:#FF5C00;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:#fff}
-.lname{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#0A0A14;letter-spacing:.04em}
+/* ambient orbs */
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+.orb-1{width:500px;height:500px;top:-120px;right:-120px;background:radial-gradient(circle,rgba(255,92,0,.07) 0%,transparent 65%)}
+.orb-2{width:400px;height:400px;bottom:-100px;left:-80px;background:radial-gradient(circle,rgba(22,163,74,.05) 0%,transparent 65%)}
+.orb-driver{width:500px;height:500px;top:-120px;right:-120px;background:radial-gradient(circle,rgba(2,132,199,.08) 0%,transparent 65%);display:none}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;height:60px;background:rgba(7,7,14,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 32px;gap:10px;z-index:100}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.lsq{width:32px;height:32px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#fff;box-shadow:0 0 14px var(--or-g)}
+.lname{font-weight:900;font-size:15px;color:var(--ink);letter-spacing:.08em}
+.nav-back{margin-left:auto;font-size:11px;padding:6px 13px;border-radius:7px;border:1px solid rgba(255,255,255,.1);color:var(--ink2);text-decoration:none;font-weight:700;background:rgba(255,255,255,.04);transition:all .2s;letter-spacing:.04em}
+.nav-back:hover{color:var(--ink);border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.08)}
+
+/* CARD */
+.card{background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:44px 40px;width:100%;max-width:480px;position:relative;z-index:1;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 24px 80px rgba(0,0,0,.7);animation:card-in .5s cubic-bezier(.22,1,.36,1) both;margin-top:60px}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);border-radius:24px 24px 0 0}
+@keyframes card-in{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
 
 /* STATES */
 .state{display:none}.state.active{display:block}
 
-/* LOADING */
-.spinner{width:48px;height:48px;border:4px solid #E2E4E9;border-top-color:#FF5C00;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px}
+/* ── LOADING ── */
+.spinner{width:52px;height:52px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--or);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 22px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#0A0A14;margin-bottom:6px}
-.loading-sub{font-size:13px;color:#8888A0;line-height:1.5}
+.load-title{font-weight:800;font-size:20px;color:var(--ink);text-align:center;margin-bottom:6px;letter-spacing:-.01em}
+.load-sub{font-size:13px;color:var(--ink2);text-align:center;line-height:1.6;font-weight:400}
 
-/* SUCCESS */
-.success-icon{width:72px;height:72px;border-radius:50%;background:#16A34A;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:30px;color:#fff;position:relative}
-.success-icon::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:3px solid rgba(22,163,74,0.25)}
-.success-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#0A0A14;margin-bottom:6px}
-.success-sub{font-size:13px;color:#8888A0;margin-bottom:22px;line-height:1.6}
+/* ── LOGO ROW (shared) ── */
+.logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:28px}
+.logo-sq-lg{width:44px;height:44px;border-radius:11px;background:var(--or);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;color:#fff;box-shadow:0 0 20px var(--or-g),0 4px 0 var(--or3)}
+.logo-name-lg{font-weight:900;font-size:20px;color:var(--ink);letter-spacing:.08em}
 
-.biz-card{background:#F8F9FC;border:2px solid #E2E4E9;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left}
-.bc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E2E4E9;font-size:12px}
-.bc-row:last-child{border-bottom:none}
-.bc-label{color:#8888A0;font-family:'Syne',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.07em}
-.bc-val{font-family:'Syne',sans-serif;font-weight:800;color:#0A0A14;font-size:12px}
-.biz-id-big{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#FF5C00;display:block;text-align:center;margin:12px 0 4px}
+/* ── SUCCESS ICON (shared) ── */
+.success-ring{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;position:relative;font-size:32px}
+.success-ring::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid;opacity:.3}
 
-.action-btns{display:flex;gap:8px;flex-direction:column}
-.ab{display:block;width:100%;padding:13px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;text-decoration:none;text-align:center;transition:all .15s;border:2px solid;cursor:pointer}
-.ab.primary{background:#FF5C00;color:#fff;border-color:#FF5C00}
-.ab.primary:hover{background:#e54d00}
-.ab.secondary{background:#fff;color:#0A0A14;border-color:#0A0A14}
-.ab.secondary:hover{background:#0A0A14;color:#fff}
+/* ── BIZ SUCCESS ── */
+.biz-icon{background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.35)}
+.biz-icon::after{border-color:var(--gr)}
+.success-title{font-weight:900;font-size:26px;color:var(--ink);text-align:center;letter-spacing:-.01em;margin-bottom:6px}
+.success-sub{font-size:13px;color:var(--ink2);text-align:center;line-height:1.65;margin-bottom:22px;font-weight:400}
 
-/* ERROR */
-.error-icon{width:72px;height:72px;border-radius:50%;background:#FEF2F2;border:3px solid #FCA5A5;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:30px}
-.error-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#DC2626;margin-bottom:6px}
-.error-sub{font-size:13px;color:#8888A0;margin-bottom:20px;line-height:1.6}
-.error-btn{display:inline-block;padding:11px 24px;border-radius:9px;background:#FF5C00;color:#fff;border:2px solid #FF5C00;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;text-decoration:none;transition:all .15s}
-.error-btn:hover{background:#e54d00}
+/* info card (shared) */
+.info-card{background:var(--bg3);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;margin-bottom:20px}
+.info-id-label{font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink2);text-align:center;margin-bottom:6px}
+.info-id-val{font-family:var(--fm);font-size:32px;font-weight:500;color:var(--or);text-align:center;display:block;letter-spacing:.04em;margin-bottom:6px}
+.info-zone-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:6px;font-weight:800;font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid}
+.zone-tag-row{text-align:center;margin-bottom:14px}
+.info-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-key{font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)}
+.info-val{font-family:var(--fm);font-size:11px;color:var(--ink);letter-spacing:.03em}
 
-/* ALREADY VERIFIED */
-.already-icon{width:72px;height:72px;border-radius:50%;background:#EFF6FF;border:3px solid #BFDBFE;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:30px}
+/* action buttons */
+.action-stack{display:flex;flex-direction:column;gap:9px}
+.abtn{display:block;width:100%;padding:14px;border-radius:11px;font-weight:800;font-size:13px;text-decoration:none;text-align:center;cursor:pointer;border:1px solid;transition:all .2s;letter-spacing:.04em}
+.abtn.primary{background:var(--or);color:#fff;border-color:var(--or);box-shadow:0 0 20px var(--or-g),0 4px 0 var(--or3)}
+.abtn.primary:hover{background:var(--or2);transform:translateY(-2px)}
+.abtn.secondary{background:rgba(255,255,255,.05);color:var(--ink2);border-color:rgba(255,255,255,.12)}
+.abtn.secondary:hover{background:rgba(255,255,255,.1);color:var(--ink);border-color:rgba(255,255,255,.25)}
+.abtn.green{background:rgba(22,163,74,.1);color:#86efac;border-color:rgba(22,163,74,.35)}
+.abtn.green:hover{background:var(--gr);color:#fff}
+.abtn.blue{background:rgba(2,132,199,.1);color:#7dd3fc;border-color:rgba(2,132,199,.35)}
+.abtn.blue:hover{background:var(--sk);color:#fff}
+
+/* ── ALREADY VERIFIED ── */
+.already-icon{background:rgba(2,132,199,.1);border:1px solid rgba(2,132,199,.3)}
+.already-icon::after{border-color:var(--sk)}
+
+/* ── DRIVER SUCCESS ── */
+.driver-icon{background:rgba(2,132,199,.1);border:1px solid rgba(2,132,199,.3)}
+.driver-icon::after{border-color:var(--sk)}
+
+/* driver zone assignment card */
+.zone-assign-card{background:var(--bg3);border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.zac-header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px}
+.zac-badge{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;color:#fff;flex-shrink:0}
+.zac-label{font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2);margin-bottom:2px}
+.zac-zone{font-weight:900;font-size:16px;letter-spacing:-.01em}
+.zac-body{padding:4px 0}
+.zac-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.05)}
+.zac-row:last-child{border-bottom:none}
+.zac-icon{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.zac-row-label{font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2);margin-bottom:2px}
+.zac-row-val{font-family:var(--fm);font-size:12px;color:var(--ink);letter-spacing:.03em}
+
+/* driver dashboard button — special */
+.dash-btn{display:flex;align-items:center;gap:12px;width:100%;padding:16px 18px;border-radius:12px;font-weight:900;font-size:14px;text-decoration:none;cursor:pointer;border:none;transition:all .2s;letter-spacing:.03em;position:relative;overflow:hidden;margin-bottom:9px}
+.dash-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%)}
+.dash-btn-icon{width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:transform .2s}
+.dash-btn:hover .dash-btn-icon{transform:scale(1.1)}
+.dash-btn-text{flex:1;text-align:left}
+.dash-btn-label{display:block;font-size:14px;font-weight:900;letter-spacing:.02em}
+.dash-btn-sub{display:block;font-size:10px;opacity:.7;font-weight:600;margin-top:1px;letter-spacing:.04em}
+.dash-btn-arrow{font-size:18px;flex-shrink:0;transition:transform .2s}
+.dash-btn:hover .dash-btn-arrow{transform:translateX(4px)}
+
+/* shift time badge */
+.shift-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+
+/* ── ERROR ── */
+.error-icon{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3)}
+.error-icon::after{border-color:var(--re)}
+.error-title{font-weight:900;font-size:22px;color:var(--re);text-align:center;margin-bottom:6px}
+.error-sub{font-size:13px;color:var(--ink2);text-align:center;line-height:1.65;margin-bottom:22px;font-weight:400}
+
+/* type detector tag */
+.type-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;font-weight:800;font-size:9px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+.type-tag-biz{background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);color:#86efac}
+.type-tag-drv{background:rgba(2,132,199,.1);border:1px solid rgba(2,132,199,.3);color:#7dd3fc}
+.type-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:type-dot-p 1.6s ease-in-out infinite}
+@keyframes type-dot-p{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* divider */
+.divider{height:1px;background:rgba(255,255,255,.06);margin:6px 0 14px}
+
+/* confetti burst (CSS only) */
+.confetti-wrap{position:absolute;top:0;left:50%;transform:translateX(-50%);width:300px;pointer-events:none;overflow:hidden;height:120px}
+.cf{position:absolute;width:8px;height:8px;border-radius:2px;animation:cf-fall .9s ease-out both}
+@keyframes cf-fall{0%{transform:translateY(-10px) rotate(0deg) scale(0);opacity:1}100%{transform:translateY(100px) rotate(540deg) scale(.4);opacity:0}}
+
+@media(max-width:520px){.card{padding:32px 22px;border-radius:18px}.info-id-val{font-size:26px}}
 </style>
 </head>
 <body>
-<div class="bg1"></div>
-<div class="bg2"></div>
 
-<div class="card">
-  <div class="logo-row">
+<div class="orb orb-1" id="orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-driver" id="orb-driver"></div>
+
+<nav>
+  <a class="logo" href="./index.html">
     <div class="lsq">N</div>
     <span class="lname">NAVADHAR</span>
-  </div>
+  </a>
+  <a class="nav-back" href="./index.html">← Home</a>
+</nav>
 
-  <!-- LOADING -->
+<div class="card" id="card">
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+
+  <!-- ══ LOADING ══ -->
   <div class="state active" id="st-loading">
+    <div class="logo-row">
+      <div class="logo-sq-lg">N</div>
+      <span class="logo-name-lg">NAVADHAR</span>
+    </div>
     <div class="spinner"></div>
-    <div class="loading-title">Verifying your account...</div>
-    <div class="loading-sub">Please wait while we confirm your business registration.</div>
+    <div class="load-title">Verifying your account…</div>
+    <div class="load-sub">Please wait while we confirm your details.</div>
   </div>
 
-  <!-- SUCCESS -->
-  <div class="state" id="st-success">
-    <div class="success-icon">✓</div>
+  <!-- ══ BUSINESS SUCCESS ══ -->
+  <div class="state" id="st-biz-success">
+    <div class="logo-row">
+      <div class="logo-sq-lg">N</div>
+      <span class="logo-name-lg">NAVADHAR</span>
+    </div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="type-tag type-tag-biz"><div class="type-dot"></div>Business Account</div>
+    </div>
+    <div class="success-ring biz-icon">✓</div>
     <div class="success-title">Account Activated!</div>
-    <div class="success-sub">Your business is now verified and active on the Navadhar delivery network.</div>
-    <div class="biz-card">
-      <div style="text-align:center;margin-bottom:8px">
-        <div style="font-size:10px;font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#8888A0;margin-bottom:4px">Your Navadhar Business ID</div>
-        <span class="biz-id-big" id="suc-bizid">NVD-001</span>
-        <div id="suc-zone-tag" style="display:inline-block;font-size:11px;font-family:'Syne',sans-serif;font-weight:800;padding:3px 10px;border-radius:5px;border:1px solid;margin-top:2px"></div>
+    <div class="success-sub">Your business is now verified and live on the Navadhar delivery network. Start submitting shipments right away.</div>
+
+    <div class="info-card">
+      <div class="info-id-label">Your Navadhar Business ID</div>
+      <div class="info-id-val" id="bs-bizid">NVD-001</div>
+      <div class="zone-tag-row">
+        <div class="info-zone-tag" id="bs-zone-tag">North Zone</div>
       </div>
-      <div class="bc-row"><div class="bc-label">Business</div><div class="bc-val" id="suc-biz">—</div></div>
-      <div class="bc-row"><div class="bc-label">Owner</div><div class="bc-val" id="suc-owner">—</div></div>
-      <div class="bc-row"><div class="bc-label">Zone</div><div class="bc-val" id="suc-zone">—</div></div>
-      <div class="bc-row"><div class="bc-label">Distance from center</div><div class="bc-val" id="suc-dist">—</div></div>
+      <div class="divider"></div>
+      <div class="info-row"><div class="info-key">Business</div><div class="info-val" id="bs-biz">—</div></div>
+      <div class="info-row"><div class="info-key">Owner</div><div class="info-val" id="bs-owner">—</div></div>
+      <div class="info-row"><div class="info-key">Zone</div><div class="info-val" id="bs-zone">—</div></div>
+      <div class="info-row"><div class="info-key">Distance from centre</div><div class="info-val" id="bs-dist">—</div></div>
     </div>
-    <div class="action-btns">
-      <a class="ab primary" href="./scan.html" id="scan-link">📦 Submit Today's Goods</a>
-      <a class="ab secondary" href="./index.html">← Back to Home</a>
+
+    <div class="action-stack">
+      <a class="abtn primary" href="./scan.html" id="bs-scan-link">📦 Submit Today's Goods</a>
+      <a class="abtn secondary" href="./index.html">← Back to Home</a>
     </div>
   </div>
 
-  <!-- ALREADY VERIFIED -->
-  <div class="state" id="st-already">
-    <div class="already-icon">✅</div>
-    <div class="success-title" style="color:#0284C7">Already Verified!</div>
-    <div class="success-sub">This business is already verified on Navadhar. You can go directly to submit your goods.</div>
-    <div class="biz-card">
-      <div style="text-align:center;margin-bottom:8px">
-        <span class="biz-id-big" id="alr-bizid" style="color:#0284C7">NVD-001</span>
-      </div>
-      <div class="bc-row"><div class="bc-label">Business</div><div class="bc-val" id="alr-biz">—</div></div>
-      <div class="bc-row"><div class="bc-label">Zone</div><div class="bc-val" id="alr-zone">—</div></div>
+  <!-- ══ ALREADY VERIFIED (BUSINESS) ══ -->
+  <div class="state" id="st-biz-already">
+    <div class="logo-row">
+      <div class="logo-sq-lg">N</div>
+      <span class="logo-name-lg">NAVADHAR</span>
     </div>
-    <div class="action-btns">
-      <a class="ab primary" href="./scan.html" id="alr-scan-link">📦 Submit Today's Goods</a>
-      <a class="ab secondary" href="./index.html">← Back to Home</a>
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="type-tag type-tag-biz"><div class="type-dot"></div>Business Account</div>
+    </div>
+    <div class="success-ring already-icon">✅</div>
+    <div class="success-title" style="color:var(--sk)">Already Verified!</div>
+    <div class="success-sub">This business is already active on Navadhar. Head to your dashboard or submit goods directly.</div>
+
+    <div class="info-card">
+      <div class="info-id-label">Business ID</div>
+      <div class="info-id-val" id="ba-bizid" style="color:var(--sk)">NVD-001</div>
+      <div class="divider"></div>
+      <div class="info-row"><div class="info-key">Business</div><div class="info-val" id="ba-biz">—</div></div>
+      <div class="info-row"><div class="info-key">Zone</div><div class="info-val" id="ba-zone">—</div></div>
+    </div>
+
+    <div class="action-stack">
+      <a class="abtn blue" href="./scan.html" id="ba-scan-link">📦 Submit Today's Goods</a>
+      <a class="abtn secondary" href="./index.html">← Back to Home</a>
     </div>
   </div>
 
-  <!-- ERROR -->
+  <!-- ══ DRIVER SUCCESS ══ -->
+  <div class="state" id="st-driver-success">
+    <div class="logo-row">
+      <div class="logo-sq-lg">N</div>
+      <span class="logo-name-lg">NAVADHAR</span>
+    </div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="type-tag type-tag-drv"><div class="type-dot"></div>Driver Account</div>
+    </div>
+    <div class="success-ring driver-icon">🚚</div>
+    <div class="success-title">You're Approved!</div>
+    <div class="success-sub">Your Navadhar driver account is active. Your zone and shift schedule are assigned below — tap the button to open your dashboard.</div>
+
+    <!-- Driver info summary -->
+    <div class="info-card" style="margin-bottom:14px">
+      <div class="info-id-label">Your Driver ID</div>
+      <div class="info-id-val" id="ds-driverid" style="color:var(--sk)">DRV-001</div>
+      <div class="divider"></div>
+      <div class="info-row"><div class="info-key">Name</div><div class="info-val" id="ds-name">—</div></div>
+      <div class="info-row"><div class="info-key">Phone</div><div class="info-val" id="ds-phone">—</div></div>
+      <div class="info-row"><div class="info-key">Vehicle</div><div class="info-val" id="ds-vehicle">—</div></div>
+      <div class="info-row"><div class="info-key">Licence</div><div class="info-val" id="ds-licence">—</div></div>
+    </div>
+
+    <!-- Zone + Shift assignment card -->
+    <div class="zone-assign-card" id="ds-assign-card">
+      <div class="zac-header">
+        <div class="zac-badge" id="ds-zone-badge">N</div>
+        <div>
+          <div class="zac-label">Zone Assignment</div>
+          <div class="zac-zone" id="ds-zone-name">North Zone</div>
+        </div>
+        <div style="margin-left:auto">
+          <div class="shift-badge" id="ds-shift-badge">
+            🕐 <span id="ds-shift-text">07:00 – 14:00</span>
+          </div>
+        </div>
+      </div>
+      <div class="zac-body">
+        <div class="zac-row">
+          <div class="zac-icon">🚛</div>
+          <div>
+            <div class="zac-row-label">Assigned Vehicle</div>
+            <div class="zac-row-val" id="ds-vehicle-id">VH-N01</div>
+          </div>
+        </div>
+        <div class="zac-row">
+          <div class="zac-icon">📍</div>
+          <div>
+            <div class="zac-row-label">Pickup Stops Today</div>
+            <div class="zac-row-val" id="ds-stop-count">—</div>
+          </div>
+        </div>
+        <div class="zac-row">
+          <div class="zac-icon">📅</div>
+          <div>
+            <div class="zac-row-label">Effective From</div>
+            <div class="zac-row-val" id="ds-effective">Today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Go to dashboard button -->
+    <a class="dash-btn" id="ds-dash-btn" href="./driver-login.html" style="background:var(--sk);color:#fff">
+      <div class="dash-btn-icon">🗺️</div>
+      <div class="dash-btn-text">
+        <span class="dash-btn-label">Open My Zone Dashboard</span>
+        <span class="dash-btn-sub" id="ds-dash-sub">North Zone · VH-N01</span>
+      </div>
+      <div class="dash-btn-arrow">→</div>
+    </a>
+    <a class="abtn secondary" href="./index.html">← Back to Home</a>
+  </div>
+
+  <!-- ══ DRIVER ALREADY VERIFIED ══ -->
+  <div class="state" id="st-driver-already">
+    <div class="logo-row">
+      <div class="logo-sq-lg">N</div>
+      <span class="logo-name-lg">NAVADHAR</span>
+    </div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="type-tag type-tag-drv"><div class="type-dot"></div>Driver Account</div>
+    </div>
+    <div class="success-ring already-icon">✅</div>
+    <div class="success-title" style="color:var(--sk)">Already Active!</div>
+    <div class="success-sub">Your driver account is already verified and active. Head straight to your zone dashboard.</div>
+
+    <div class="info-card" style="margin-bottom:16px">
+      <div class="info-id-label">Driver ID</div>
+      <div class="info-id-val" id="da-driverid" style="color:var(--sk)">DRV-001</div>
+      <div class="divider"></div>
+      <div class="info-row"><div class="info-key">Name</div><div class="info-val" id="da-name">—</div></div>
+      <div class="info-row"><div class="info-key">Zone</div><div class="info-val" id="da-zone">—</div></div>
+    </div>
+
+    <a class="dash-btn" id="da-dash-btn" href="./driver-login.html" style="background:var(--sk);color:#fff;margin-bottom:9px">
+      <div class="dash-btn-icon">🗺️</div>
+      <div class="dash-btn-text">
+        <span class="dash-btn-label">Open My Zone Dashboard</span>
+        <span class="dash-btn-sub" id="da-dash-sub">Zone Dashboard</span>
+      </div>
+      <div class="dash-btn-arrow">→</div>
+    </a>
+    <a class="abtn secondary" href="./index.html">← Back to Home</a>
+  </div>
+
+  <!-- ══ ERROR ══ -->
   <div class="state" id="st-error">
-    <div class="error-icon">⚠️</div>
+    <div class="logo-row">
+      <div class="logo-sq-lg">N</div>
+      <span class="logo-name-lg">NAVADHAR</span>
+    </div>
+    <div class="success-ring error-icon">⚠️</div>
     <div class="error-title">Link Invalid or Expired</div>
-    <div class="error-sub">This verification link is invalid or has expired (links expire after 24 hours). Please register again to get a new link.</div>
-    <a class="error-btn" href="./register.html">Register Again →</a>
+    <div class="error-sub" id="error-sub">This verification link is invalid or has expired. Links expire after 24 hours. Please re-register or contact Navadhar support.</div>
+    <div class="action-stack">
+      <a class="abtn primary" href="./register.html">Register as Business →</a>
+      <a class="abtn blue" href="./driver-login.html">Driver Portal →</a>
+      <a class="abtn secondary" href="./index.html">← Home</a>
+    </div>
   </div>
-</div>
+
+</div><!-- /card -->
 
 <script>
-var ZM={North:{solid:'#6C2BD9',light:'#EDE9FF',text:'#6C2BD9'},East:{solid:'#0284C7',light:'#E0F2FE',text:'#0284C7'},South:{solid:'#DC2626',light:'#FEE2E2',text:'#DC2626'},West:{solid:'#D97706',light:'#FEF3C7',text:'#D97706'}};
+// ─────────────────────────────────────────────────────
+// ZONE META
+// ─────────────────────────────────────────────────────
+var ZM = {
+  North: {solid:'#6C2BD9', light:'rgba(108,43,217,.15)', text:'#6C2BD9', vehicle:'VH-N01', shift:'07:00 – 14:00'},
+  East:  {solid:'#0284C7', light:'rgba(2,132,199,.15)',  text:'#0284C7', vehicle:'VH-E01', shift:'07:30 – 14:30'},
+  South: {solid:'#DC2626', light:'rgba(220,38,38,.15)',  text:'#DC2626', vehicle:'VH-S01', shift:'08:00 – 15:00'},
+  West:  {solid:'#D97706', light:'rgba(217,119,6,.15)',  text:'#D97706', vehicle:'VH-W01', shift:'07:00 – 14:00'}
+};
 
-function loadPickups(){try{return JSON.parse(localStorage.getItem('nvd_pickups')||'[]');}catch(e){return[];}}
-function savePickups(d){try{localStorage.setItem('nvd_pickups',JSON.stringify(d));}catch(e){}}
+// ─────────────────────────────────────────────────────
+// STORAGE
+// ─────────────────────────────────────────────────────
+function loadPickups() { try { return JSON.parse(localStorage.getItem('nvd_pickups') || '[]'); } catch(e) { return []; } }
+function savePickups(d) { try { localStorage.setItem('nvd_pickups', JSON.stringify(d)); } catch(e) {} }
+function loadDrivers() { try { return JSON.parse(localStorage.getItem('nvd_drivers') || '[]'); } catch(e) { return []; } }
+function saveDrivers(d) { try { localStorage.setItem('nvd_drivers', JSON.stringify(d)); } catch(e) {} }
 
-function showState(id){
-  document.querySelectorAll('.state').forEach(function(s){s.classList.remove('active');});
+// ─────────────────────────────────────────────────────
+// STATE SWITCHER
+// ─────────────────────────────────────────────────────
+function showState(id) {
+  document.querySelectorAll('.state').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
 }
 
-function verify(){
-  var params=new URLSearchParams(window.location.search);
-  var token=params.get('token');
-  var bizId=params.get('id');
-
-  if(!token&&!bizId){showState('st-error');return;}
-
-  // Load pending verifications
-  var pending=JSON.parse(localStorage.getItem('nvd_pending_verify')||'[]');
-
-  // Find by token or bizId
-  var entry=null;
-  if(token){
-    entry=pending.find(function(p){return p.token===token;});
+// ─────────────────────────────────────────────────────
+// CONFETTI BURST
+// ─────────────────────────────────────────────────────
+function burstConfetti(colors) {
+  var wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  var pieces = 18;
+  for (var i = 0; i < pieces; i++) {
+    var cf = document.createElement('div');
+    cf.className = 'cf';
+    cf.style.cssText =
+      'left:' + (20 + Math.random() * 60) + '%;' +
+      'background:' + colors[Math.floor(Math.random() * colors.length)] + ';' +
+      'animation-delay:' + (Math.random() * .4) + 's;' +
+      'animation-duration:' + (.7 + Math.random() * .5) + 's;' +
+      'border-radius:' + (Math.random() > .5 ? '50%' : '2px') + ';' +
+      'width:' + (5 + Math.random() * 7) + 'px;height:' + (5 + Math.random() * 7) + 'px';
+    wrap.appendChild(cf);
   }
+}
 
-  // If no pending entry, check if already verified business
-  if(!entry&&bizId){
-    var all=loadPickups();
-    var biz=all.find(function(p){return p.bizId===bizId;});
-    if(biz&&biz.verified){
-      // Already verified — show already state
-      document.getElementById('alr-bizid').textContent=biz.bizId;
-      document.getElementById('alr-biz').textContent=biz.biz;
-      document.getElementById('alr-zone').textContent=biz.zone+' Zone';
-      document.getElementById('alr-scan-link').href='./scan.html?id='+biz.bizId;
-      showState('st-already');
-      return;
-    }
-  }
+// ─────────────────────────────────────────────────────
+// STYLE DRIVER ZONE CARD
+// ─────────────────────────────────────────────────────
+function applyZoneStyle(zone) {
+  var z = ZM[zone] || ZM['North'];
+  var badge = document.getElementById('ds-zone-badge');
+  badge.style.background = z.solid;
+  badge.textContent = zone.charAt(0);
 
-  if(!entry){showState('st-error');return;}
+  var card = document.getElementById('ds-assign-card');
+  card.style.borderColor = z.solid.replace(')', ', .4)').replace('rgb', 'rgba');
 
-  // Check expiry (24 hours)
-  var now=Date.now();
-  var age=now-entry.createdAt;
-  if(age>24*60*60*1000){
-    // Expired — remove from pending
-    localStorage.setItem('nvd_pending_verify',JSON.stringify(pending.filter(function(p){return p.token!==token;})));
+  var zname = document.getElementById('ds-zone-name');
+  zname.textContent = zone + ' Zone';
+  zname.style.color = z.solid;
+
+  var shiftBadge = document.getElementById('ds-shift-badge');
+  shiftBadge.style.background = z.light;
+  shiftBadge.style.color = z.text;
+  shiftBadge.style.border = '1px solid ' + z.solid.replace(')', ',.4)').replace('rgb','rgba');
+  document.getElementById('ds-shift-text').textContent = z.shift;
+
+  document.getElementById('ds-vehicle-id').textContent = z.vehicle;
+
+  // Dashboard button colour
+  var btn = document.getElementById('ds-dash-btn');
+  btn.style.background = z.solid;
+  document.getElementById('ds-dash-sub').textContent = zone + ' Zone · ' + z.vehicle;
+
+  // Ambient orb colour for driver
+  document.getElementById('orb-driver').style.background =
+    'radial-gradient(circle,' + z.solid.replace(')', ',.1)').replace('rgb','rgba') + ' 0%,transparent 65%)';
+  document.getElementById('orb-driver').style.display = 'block';
+  document.getElementById('orb-1').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────────────
+// COUNT STOPS FOR ZONE
+// ─────────────────────────────────────────────────────
+function zoneStopCount(zone) {
+  return loadPickups().filter(function(p) { return p.zone === zone && p.verified; }).length;
+}
+
+// ─────────────────────────────────────────────────────
+// MAIN VERIFY FUNCTION
+// ─────────────────────────────────────────────────────
+function verify() {
+  var params = new URLSearchParams(window.location.search);
+  var token  = params.get('token');
+  var type   = params.get('type');   // 'driver' | 'business' | null (default = business)
+  var id     = params.get('id');     // bizId or driverId fallback
+
+  // No params at all → error
+  if (!token && !id) {
     showState('st-error');
     return;
   }
 
-  // Valid — mark business as verified
-  var all=loadPickups();
-  var idx=all.findIndex(function(p){return p.bizId===entry.bizId;});
-  if(idx>=0){
-    all[idx].verified=true;
-    all[idx].verifiedAt=new Date().toISOString();
-    savePickups(all);
+  // ── DRIVER FLOW ──────────────────────────────────
+  if (type === 'driver') {
+    verifyDriver(token, id);
+    return;
   }
 
-  // Remove from pending
-  localStorage.setItem('nvd_pending_verify',JSON.stringify(pending.filter(function(p){return p.token!==token;})));
-
-  // Show success
-  var biz=all[idx]||entry;
-  var c=ZM[biz.zone]||{solid:'#888',light:'#eee',text:'#888'};
-  document.getElementById('suc-bizid').textContent=biz.bizId;
-  document.getElementById('suc-biz').textContent=biz.biz;
-  document.getElementById('suc-owner').textContent=biz.owner||'—';
-  document.getElementById('suc-zone').textContent=biz.zone+' Zone';
-  document.getElementById('suc-dist').textContent=biz.dist+'m';
-  var zt=document.getElementById('suc-zone-tag');
-  zt.textContent=biz.zone+' Zone';
-  zt.style.background=c.light;zt.style.color=c.text;zt.style.borderColor=c.solid;
-  document.getElementById('scan-link').href='./scan.html?id='+biz.bizId;
-  showState('st-success');
+  // ── BUSINESS FLOW (default) ──────────────────────
+  verifyBusiness(token, id);
 }
 
-// Small delay for UX — looks like it's actually doing something
-setTimeout(verify, 1200);
+// ─────────────────────────────────────────────────────
+// BUSINESS VERIFICATION
+// ─────────────────────────────────────────────────────
+function verifyBusiness(token, bizId) {
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('nvd_pending_verify') || '[]'); } catch(e) {}
+
+  // Check if already verified via ?id= fallback
+  if (!token && bizId) {
+    var all = loadPickups();
+    var biz = all.find(function(p) { return p.bizId === bizId; });
+    if (biz && biz.verified) {
+      populateBizAlready(biz);
+      showState('st-biz-already');
+      return;
+    }
+  }
+
+  // Find by token
+  var entry = token ? pending.find(function(p) { return p.token === token; }) : null;
+
+  if (!entry) {
+    // Last chance: already-verified check by bizId from token search
+    if (bizId) {
+      var allP = loadPickups();
+      var bizP = allP.find(function(p) { return p.bizId === bizId; });
+      if (bizP && bizP.verified) { populateBizAlready(bizP); showState('st-biz-already'); return; }
+    }
+    showState('st-error');
+    return;
+  }
+
+  // Expiry check (24h)
+  if (Date.now() - entry.createdAt > 24 * 60 * 60 * 1000) {
+    localStorage.setItem('nvd_pending_verify', JSON.stringify(pending.filter(function(p) { return p.token !== token; })));
+    document.getElementById('error-sub').textContent = 'This verification link has expired (links are valid for 24 hours). Please register again to get a new link.';
+    showState('st-error');
+    return;
+  }
+
+  // Mark verified
+  var pickups = loadPickups();
+  var idx = pickups.findIndex(function(p) { return p.bizId === entry.bizId; });
+  if (idx >= 0) {
+    pickups[idx].verified = true;
+    pickups[idx].verifiedAt = new Date().toISOString();
+    savePickups(pickups);
+  }
+
+  // Remove token
+  localStorage.setItem('nvd_pending_verify', JSON.stringify(pending.filter(function(p) { return p.token !== token; })));
+
+  // Populate success UI
+  var record = idx >= 0 ? pickups[idx] : entry;
+  var z = ZM[record.zone] || {solid:'#888', light:'#222', text:'#888'};
+
+  document.getElementById('bs-bizid').textContent = record.bizId;
+  document.getElementById('bs-biz').textContent   = record.biz || '—';
+  document.getElementById('bs-owner').textContent = record.owner || '—';
+  document.getElementById('bs-zone').textContent  = (record.zone || '—') + ' Zone';
+  document.getElementById('bs-dist').textContent  = record.dist ? record.dist + 'm' : '—';
+  document.getElementById('bs-scan-link').href    = './scan.html?id=' + record.bizId;
+
+  var ztag = document.getElementById('bs-zone-tag');
+  ztag.textContent = (record.zone || '—') + ' Zone';
+  ztag.style.background   = z.light;
+  ztag.style.color        = z.text;
+  ztag.style.borderColor  = z.solid;
+
+  burstConfetti(['#16A34A','#86efac','#ffffff','#FF5C00']);
+  showState('st-biz-success');
+}
+
+function populateBizAlready(biz) {
+  document.getElementById('ba-bizid').textContent = biz.bizId;
+  document.getElementById('ba-biz').textContent   = biz.biz || '—';
+  document.getElementById('ba-zone').textContent  = (biz.zone || '—') + ' Zone';
+  document.getElementById('ba-scan-link').href    = './scan.html?id=' + biz.bizId;
+}
+
+// ─────────────────────────────────────────────────────
+// DRIVER VERIFICATION
+// ─────────────────────────────────────────────────────
+function verifyDriver(token, driverId) {
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('nvd_driver_verify_tokens') || '[]'); } catch(e) {}
+
+  // Already-approved fallback via driverId
+  if (!token && driverId) {
+    var allD = loadDrivers();
+    var drv  = allD.find(function(d) { return d.driverId === driverId; });
+    if (drv && drv.verifiedAt) {
+      populateDriverAlready(drv);
+      showState('st-driver-already');
+      return;
+    }
+  }
+
+  // Find token
+  var entry = token ? pending.find(function(p) { return p.token === token; }) : null;
+
+  if (!entry) {
+    if (driverId) {
+      var allD2 = loadDrivers();
+      var drv2  = allD2.find(function(d) { return d.driverId === driverId; });
+      if (drv2 && drv2.verifiedAt) { populateDriverAlready(drv2); showState('st-driver-already'); return; }
+    }
+    document.getElementById('error-sub').textContent = 'This driver verification link is invalid or has expired. Ask your admin to resend the approval link.';
+    showState('st-error');
+    return;
+  }
+
+  // Expiry (24h)
+  if (Date.now() - entry.createdAt > 24 * 60 * 60 * 1000) {
+    localStorage.setItem('nvd_driver_verify_tokens', JSON.stringify(pending.filter(function(p) { return p.token !== token; })));
+    document.getElementById('error-sub').textContent = 'This driver approval link has expired. Please ask your admin to resend it.';
+    showState('st-error');
+    return;
+  }
+
+  // Mark driver as verified / confirmed
+  var drivers = loadDrivers();
+  var idx = drivers.findIndex(function(d) { return d.driverId === entry.driverId; });
+  if (idx >= 0) {
+    drivers[idx].status     = 'approved';
+    drivers[idx].verifiedAt = new Date().toISOString();
+    // Persist session
+    localStorage.setItem('nvd_active_driver', drivers[idx].driverId);
+    saveDrivers(drivers);
+  }
+
+  // Remove token
+  localStorage.setItem('nvd_driver_verify_tokens', JSON.stringify(pending.filter(function(p) { return p.token !== token; })));
+
+  var driver = idx >= 0 ? drivers[idx] : entry;
+  populateDriverSuccess(driver);
+  applyZoneStyle(driver.zone || 'North');
+  burstConfetti(['#0284C7','#7dd3fc','#ffffff','#FF5C00']);
+  showState('st-driver-success');
+}
+
+function populateDriverSuccess(driver) {
+  var zone = driver.zone || 'North';
+  var z    = ZM[zone] || ZM['North'];
+  var stops = zoneStopCount(zone);
+
+  document.getElementById('ds-driverid').textContent  = driver.driverId;
+  document.getElementById('ds-name').textContent      = driver.name || '—';
+  document.getElementById('ds-phone').textContent     = driver.phone || '—';
+  document.getElementById('ds-vehicle').textContent   = driver.vehicleType || '—';
+  document.getElementById('ds-licence').textContent   = driver.licence || '—';
+  document.getElementById('ds-zone-name').textContent = zone + ' Zone';
+  document.getElementById('ds-vehicle-id').textContent= z.vehicle;
+  document.getElementById('ds-stop-count').textContent = stops + ' stop' + (stops !== 1 ? 's' : '') + ' in ' + zone + ' Zone';
+  document.getElementById('ds-effective').textContent = new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'long', year:'numeric'});
+
+  // Dashboard link — deep-link to driver portal with their session already set
+  var dashHref = './driver-login.html';
+  document.getElementById('ds-dash-btn').href = dashHref;
+}
+
+function populateDriverAlready(driver) {
+  var zone = driver.zone || 'North';
+  var z    = ZM[zone] || ZM['North'];
+
+  document.getElementById('da-driverid').textContent = driver.driverId;
+  document.getElementById('da-name').textContent     = driver.name || '—';
+  document.getElementById('da-zone').textContent     = zone + ' Zone';
+  document.getElementById('da-dash-sub').textContent = zone + ' Zone · ' + z.vehicle;
+
+  var btn = document.getElementById('da-dash-btn');
+  btn.style.background = z.solid;
+  btn.href = './driver-login.html';
+
+  applyZoneStyle(zone);
+}
+
+// ─────────────────────────────────────────────────────
+// BOOT — small delay for UX feel
+// ─────────────────────────────────────────────────────
+setTimeout(verify, 1100);
 </script>
+
+<!-- ─────────────────────────────────────────────────
+     HOW ADMIN SENDS DRIVER VERIFICATION LINK
+     ─────────────────────────────────────────────────
+  In admin.html → notifyDriver() function, build the link as:
+
+    var token = makeToken();
+    var verifyUrl = base + 'verify.html?type=driver&token=' + token + '&id=' + driver.driverId;
+
+  Then persist the token:
+    var pending = JSON.parse(localStorage.getItem('nvd_driver_verify_tokens') || '[]');
+    pending.push({ token: token, driverId: driver.driverId, createdAt: Date.now() });
+    localStorage.setItem('nvd_driver_verify_tokens', JSON.stringify(pending));
+
+  WhatsApp message example:
+    'Hello ' + driver.name + '!\n\n'
+    + '*Your Navadhar driver account has been approved!* ✅\n\n'
+    + 'Zone: *' + driver.zone + ' Zone*\n'
+    + 'Shift: *' + shiftTime + '*\n\n'
+    + 'Tap the link below to verify and open your dashboard:\n\n'
+    + '🚚 ' + verifyUrl + '\n\n'
+    + '⏰ Link expires in 24 hours.\n\n— Navadhar Team'
+──────────────────────────────────────────────────── -->
 </body>
 </html>
