@@ -143,6 +143,14 @@ nav{position:fixed;top:0;left:0;right:0;height:60px;background:rgba(7,7,14,.9);b
 .cf{position:absolute;width:8px;height:8px;border-radius:2px;animation:cf-fall .9s ease-out both}
 @keyframes cf-fall{0%{transform:translateY(-10px) rotate(0deg) scale(0);opacity:1}100%{transform:translateY(100px) rotate(540deg) scale(.4);opacity:0}}
 
+/* ── PHONE VERIFY SUCCESS ── */
+.phone-verify-icon{background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.35)}
+.phone-verify-icon::after{border-color:var(--gr)}
+.redirect-bar-wrap{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 16px;margin:18px 0 20px;display:flex;align-items:center;gap:12px}
+.redirect-bar-track{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:100px;overflow:hidden}
+.redirect-bar-fill{height:100%;background:var(--gr);border-radius:100px;width:0%;transition:width linear}
+.redirect-bar-label{font-size:11px;font-weight:800;color:var(--ink2);white-space:nowrap;letter-spacing:.04em}
+
 @media(max-width:520px){.card{padding:32px 22px;border-radius:18px}.info-id-val{font-size:26px}}
 </style>
 </head>
@@ -340,6 +348,34 @@ nav{position:fixed;top:0;left:0;right:0;height:60px;background:rgba(7,7,14,.9);b
     <a class="abtn secondary" href="./index.html">← Back to Home</a>
   </div>
 
+  <!-- ══ PHONE VERIFY SUCCESS ══ -->
+  <div class="state" id="st-phone-verified">
+    <div class="logo-row">
+      <div class="logo-sq-lg">N</div>
+      <span class="logo-name-lg">NAVADHAR</span>
+    </div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="type-tag type-tag-biz"><div class="type-dot"></div>Phone Verified</div>
+    </div>
+    <div class="success-ring phone-verify-icon">✓</div>
+    <div class="success-title">Number Verified!</div>
+    <div class="success-sub">Your WhatsApp number has been confirmed. Taking you to your business registration now…</div>
+
+    <div class="info-card" style="margin-bottom:14px">
+      <div class="info-id-label">Verified Number</div>
+      <div class="info-id-val" id="pv-phone" style="color:var(--gr);font-size:22px">—</div>
+    </div>
+
+    <div class="redirect-bar-wrap">
+      <div class="redirect-bar-track">
+        <div class="redirect-bar-fill" id="redirect-bar"></div>
+      </div>
+      <div class="redirect-bar-label" id="redirect-label">Redirecting…</div>
+    </div>
+
+    <a class="abtn green" id="pv-continue-btn" href="#">Continue Now →</a>
+  </div>
+
   <!-- ══ ERROR ══ -->
   <div class="state" id="st-error">
     <div class="logo-row">
@@ -467,6 +503,12 @@ function verify() {
   // ── DRIVER FLOW ──────────────────────────────────
   if (type === 'driver') {
     verifyDriver(token, id);
+    return;
+  }
+
+  // ── PHONE VERIFY FLOW ────────────────────────────
+  if (type === 'phone_verify') {
+    verifyPhone(token, params.get('phone'));
     return;
   }
 
@@ -649,6 +691,78 @@ function populateDriverAlready(driver) {
   btn.href = './driver-login.html';
 
   applyZoneStyle(zone);
+}
+
+// ─────────────────────────────────────────────────────
+// PHONE VERIFICATION (step 1 of business registration)
+// ─────────────────────────────────────────────────────
+function verifyPhone(token, phone) {
+  if (!token || !phone) {
+    document.getElementById('error-sub').textContent = 'This phone verification link is invalid or missing. Please go back and enter your number again.';
+    showState('st-error');
+    return;
+  }
+
+  // Validate token from nvd_phone_verify_tokens
+  var pending = [];
+  try { pending = JSON.parse(localStorage.getItem('nvd_phone_verify_tokens') || '[]'); } catch(e) {}
+  var entry = pending.find(function(p) { return p.token === token && p.phone === phone; });
+
+  if (!entry) {
+    document.getElementById('error-sub').textContent = 'This phone verification link is invalid or has already been used. Please go back and request a new one.';
+    showState('st-error');
+    return;
+  }
+
+  if (Date.now() - entry.createdAt > 24 * 60 * 60 * 1000) {
+    pending = pending.filter(function(p) { return p.token !== token; });
+    localStorage.setItem('nvd_phone_verify_tokens', JSON.stringify(pending));
+    document.getElementById('error-sub').textContent = 'This phone verification link has expired (24 hours). Please go back and try again.';
+    showState('st-error');
+    return;
+  }
+
+  // Valid — consume token
+  pending = pending.filter(function(p) { return p.token !== token; });
+  localStorage.setItem('nvd_phone_verify_tokens', JSON.stringify(pending));
+
+  // Build redirect URL back to register.html?step=details&phone=...&ptoken=...
+  // We issue a short-lived pass token so register.html knows it's legit
+  var passToken = (Math.random().toString(36).substring(2,10) + Date.now().toString(36));
+  var passPending = [];
+  try { passPending = JSON.parse(localStorage.getItem('nvd_phone_verify_tokens') || '[]'); } catch(e) {}
+  passPending.push({ token: passToken, phone: phone, createdAt: Date.now() });
+  localStorage.setItem('nvd_phone_verify_tokens', JSON.stringify(passPending));
+
+  var base = window.location.href.replace('verify.html','').split('?')[0];
+  var redirectUrl = base + 'register.html?step=details&phone=' + encodeURIComponent(phone) + '&ptoken=' + passToken;
+
+  // Show success state
+  document.getElementById('pv-phone').textContent = phone;
+  document.getElementById('pv-continue-btn').href = redirectUrl;
+
+  burstConfetti(['#16A34A','#86efac','#ffffff','#FF5C00']);
+  showState('st-phone-verified');
+
+  // Animated progress bar then auto-redirect after 3s
+  var bar    = document.getElementById('redirect-bar');
+  var label  = document.getElementById('redirect-label');
+  var secs   = 3;
+  var elapsed = 0;
+  var interval = 50; // ms ticks
+  var total   = secs * 1000;
+  bar.style.transition = 'width ' + (total/1000) + 's linear';
+  setTimeout(function(){ bar.style.width = '100%'; }, 50);
+
+  var countdown = setInterval(function(){
+    elapsed += interval;
+    var remaining = Math.ceil((total - elapsed) / 1000);
+    label.textContent = remaining > 0 ? 'Redirecting in ' + remaining + 's…' : 'Redirecting…';
+    if (elapsed >= total) {
+      clearInterval(countdown);
+      window.location.href = redirectUrl;
+    }
+  }, interval);
 }
 
 // ─────────────────────────────────────────────────────
