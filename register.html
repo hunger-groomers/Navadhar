@@ -508,6 +508,22 @@ nav{background:rgba(7,7,14,.92);backdrop-filter:blur(22px);border-bottom:1px sol
     </div>
 
     <div class="sbtns">
+      <!-- DASHBOARD REDIRECT COUNTDOWN -->
+      <div id="dash-redirect-row" style="width:100%;margin-bottom:14px">
+        <div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.22);border-radius:12px;padding:13px 16px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
+            <span style="font-size:12px;font-weight:700;color:#86efac;letter-spacing:.03em" id="dash-redirect-lbl">Opening your dashboard in 5s…</span>
+            <button onclick="cancelRedirect()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:7px;color:var(--ink2);font-family:var(--f);font-weight:700;font-size:10px;padding:4px 10px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink2)'">✕ Cancel</button>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:100px;height:4px;overflow:hidden">
+            <div id="dash-redirect-bar" style="height:100%;background:#16A34A;border-radius:100px;width:0%"></div>
+          </div>
+        </div>
+        <a id="dash-go-btn" href="./dashboard.html" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:linear-gradient(180deg,#22c55e 0%,#16A34A 50%,#15803d 100%);color:#fff;border-radius:12px;font-family:var(--f);font-weight:900;font-size:14px;text-decoration:none;letter-spacing:.04em;box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 5px 0 #0f5c2e,0 8px 20px rgba(22,163,74,.4),0 14px 36px rgba(0,0,0,.4);transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+          <span style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.14) 0%,transparent 55%)"></span>
+          🏪 Go to My Dashboard Now →
+        </a>
+      </div>
       <button class="sbtn outline" onclick="downloadQR()">⬇ Download QR</button>
       <button class="sbtn outline" onclick="resetForm()">Register Another</button>
       <a class="sbtn filled" href="./index.html">Home</a>
@@ -694,6 +710,8 @@ function showFMsg(txt,type){var el=document.getElementById('fmsg');el.textConten
 
 // ── SUBMIT ──
 var lastBiz=null;
+var _redirectTimer=null;
+
 function doSubmit(){
   var biz=document.getElementById('f-biz').value.trim();
   var owner=document.getElementById('f-owner').value.trim();
@@ -707,7 +725,12 @@ function doSubmit(){
   var entry={id:Date.now(),bizId:bizId,biz:biz,owner:owner,phone:verifiedPhone,whatsapp:wa,email:email,category:cat,lat:pLat,lng:pLng,zone:z,dist:d,registeredAt:new Date().toISOString()};
   var all=db();all.push(entry);save(all);
   lastBiz=entry;
+
+  // Set as active business so dashboard opens instantly
+  localStorage.setItem('nvd_active_biz', bizId);
+
   buildVerifyLinks(entry);
+
   // Populate overlay
   document.getElementById('suc-id').textContent=bizId;
   var zb=document.getElementById('suc-zone');
@@ -722,6 +745,47 @@ function doSubmit(){
   burstConfetti();
   document.getElementById('sov').className='sov show';
   setStep(3,'done');
+
+  // Start 5-second redirect countdown to dashboard
+  startDashRedirect(entry);
+}
+
+function startDashRedirect(entry){
+  var base = window.location.origin + window.location.pathname.replace('register.html','');
+  var dashUrl = base + 'dashboard.html?id=' + entry.bizId;
+
+  // Update "Go Now" button href
+  document.getElementById('dash-go-btn').href = dashUrl;
+
+  var total = 5000;
+  var elapsed = 0;
+  var tick = 50;
+  var bar = document.getElementById('dash-redirect-bar');
+  var lbl = document.getElementById('dash-redirect-lbl');
+
+  // animate bar
+  bar.style.transition = 'width '+total+'ms linear';
+  setTimeout(function(){ bar.style.width='100%'; }, 50);
+
+  clearInterval(_redirectTimer);
+  _redirectTimer = setInterval(function(){
+    elapsed += tick;
+    var secs = Math.ceil((total - elapsed) / 1000);
+    lbl.textContent = 'Opening your dashboard in '+secs+'s…';
+    if(elapsed >= total){
+      clearInterval(_redirectTimer);
+      window.location.href = dashUrl;
+    }
+  }, tick);
+}
+
+function cancelRedirect(){
+  clearInterval(_redirectTimer);
+  var bar = document.getElementById('dash-redirect-bar');
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  document.getElementById('dash-redirect-lbl').textContent = 'Redirect cancelled';
+  document.getElementById('dash-redirect-row').style.display = 'none';
 }
 
 // ── VERIFY LINKS ──
@@ -1006,6 +1070,8 @@ function burstConfetti(){
 
 // ── RESET ──
 function resetForm(){
+  cancelRedirect();
+  document.getElementById('dash-redirect-row').style.display='block';
   document.getElementById('sov').className='sov';
   ['f-biz','f-owner','f-wa','f-email','f-cat','area-sel','email-inp-sov'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   if(PIN){MAP.removeLayer(PIN);PIN=null;}
